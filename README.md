@@ -7,3 +7,11 @@ Medische bijsluiters zijn vaan onvindbaar, onleesbaar of ingewikkels. **MedScan*
 ## Functionaliteiten
 - **Strip Scanner:** Maak een foto en herken direct het medicijn
 - **Simplified Info:** Direct inzicht in: "waarvoor is het?", "Hoeveel mag ik er?" en "Waar moet ik op letten?"
+- **Inname-Tracker:** Stel met één klik een schema in zodat de app je herinnert aan je volgende dosis.
+
+
+## Technische Stack & API's
+- **Frontend:** Flutter
+- **Computer Vision:** **Google ML Kit Vision API** voor on-device tekstherkenning
+- **Notifications:** `flutter_local_notification` voor de inname-herinnering
+- **Data/Backend**: **Firebase Firestore** voor de medicatiedatabase en gebruikersdata
