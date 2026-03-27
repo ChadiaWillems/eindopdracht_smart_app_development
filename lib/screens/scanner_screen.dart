@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:medscan/screens/medicine_screen.dart';
 import 'package:medscan/services/firestore_service.dart';
 
 class ScannerScreen extends StatefulWidget {
@@ -19,25 +20,31 @@ class _ScannerScreenState extends State<ScannerScreen> {
   bool _hasFoundMatch = false;
 
   final FirestoreService _firestoreService = FirestoreService();
-  List<String> _medicineNamesFromDB = [];
+
+  // We slaan zowel de zoeknaam (kleine letters) als de echte naam (voor Firestore) op
+  List<Map<String, String>> _medicineDataFromDB = [];
 
   @override
   void initState() {
     super.initState();
-    _initializeCamera();
-    _fetchMedicines();
+    _fetchMedicines(); // Eerst data ophalen
+    _initializeCamera(); // Dan camera starten
   }
 
   Future<void> _fetchMedicines() async {
-    // We luisteren naar de eerste 'vlaag' data die uit de stream komt
     _firestoreService.getMedicines().listen((snapshot) {
-      setState(() {
-        _medicineNamesFromDB = snapshot.docs.map((doc) {
-          // We halen de 'name' op en maken er kleine letters van voor de match
-          return doc.data()['name'].toString().toLowerCase();
-        }).toList();
-      });
-      print("Database geladen via Service: $_medicineNamesFromDB");
+      if (mounted) {
+        setState(() {
+          _medicineDataFromDB = snapshot.docs.map((doc) {
+            return {
+              'searchName': doc.data()['name'].toString().toLowerCase(),
+              'realName': doc
+                  .id, // De ID is de naam met hoofdletters (bijv. "Amoxicilline")
+            };
+          }).toList();
+        });
+      }
+      print("Database geladen: ${_medicineDataFromDB.length} medicijnen");
     });
   }
 
@@ -54,7 +61,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
     );
     await _controller!.initialize();
 
-    // Start de beeldstroom: we scannen elk frame!
     _controller!.startImageStream((CameraImage image) {
       if (!_isProcessing) {
         _isProcessing = true;
@@ -77,8 +83,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
       final inputImageMetadata = InputImageMetadata(
         size: Size(image.width.toDouble(), image.height.toDouble()),
-        rotation: InputImageRotation.rotation90deg, // Voor iPhone staand
-        format: InputImageFormat.bgra8888, // Standaard voor iOS
+        rotation: InputImageRotation.rotation90deg,
+        format: InputImageFormat.bgra8888,
         bytesPerRow: image.planes[0].bytesPerRow,
       );
 
@@ -86,7 +92,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
         bytes: bytes,
         metadata: inputImageMetadata,
       );
-
       final RecognizedText recognizedText = await _textRecognizer.processImage(
         inputImage,
       );
@@ -95,41 +100,37 @@ class _ScannerScreenState extends State<ScannerScreen> {
         '\n',
         ' ',
       );
+
       if (gescandeTekst.trim().isNotEmpty) {
         print("Gescande tekst: $gescandeTekst");
       }
 
+      String matchedRealName = "";
       bool foundMatch = false;
-      String matchedName = "";
 
-      for (String dbName in _medicineNamesFromDB) {
-        // We checken of de naam uit je DB (minimaal 4 letters) in de gescande tekst staat
-        if (dbName.length > 3 && gescandeTekst.contains(dbName)) {
+      // Check of een van de namen uit de DB voorkomt in de gescande tekst
+      for (var med in _medicineDataFromDB) {
+        String searchName = med['searchName']!;
+        if (searchName.length > 3 && gescandeTekst.contains(searchName)) {
           foundMatch = true;
-          matchedName = dbName;
+          matchedRealName = med['realName']!;
           break;
         }
       }
 
       if (foundMatch) {
         setState(() {
-          _hasFoundMatch = true; // Stop direct met nieuwe frames verwerken
+          _hasFoundMatch = true;
         });
-
-        print("🔥 MATCH GEVONDEN IN DB: $matchedName");
-
-        // Toon de popup
-        _showMatchFound(matchedName);
-
-        return; // Stop de functie hier
+        print("🔥 MATCH GEVONDEN: $matchedRealName");
+        _showMatchFound(matchedRealName);
+        return;
       }
     } catch (e) {
       print("Fout bij verwerken afbeelding: $e");
     }
 
-    await Future.delayed(
-      const Duration(seconds: 1),
-    ); // Even wachten om batterij te sparen
+    await Future.delayed(const Duration(seconds: 1));
     _isProcessing = false;
   }
 
@@ -144,21 +145,24 @@ class _ScannerScreenState extends State<ScannerScreen> {
             isDefaultAction: true,
             child: const Text('Bekijk details'),
             onPressed: () {
-              Navigator.pop(context); // Sluit popup
-              // TODO: Navigeer naar DetailPage(name: medicineName)
+              Navigator.pop(context);
+              Navigator.of(context).push(
+                CupertinoPageRoute(
+                  builder: (context) =>
+                      MedicineScreen(medicineName: medicineName),
+                ),
+              );
             },
           ),
           CupertinoDialogAction(
             isDestructiveAction: true,
             child: const Text('Scan opnieuw'),
             onPressed: () {
-              Navigator.pop(context); // Sluit popup
+              Navigator.pop(context);
               setState(() {
-                _hasFoundMatch = false; // Zet de vlag weer uit
+                _hasFoundMatch = false;
                 _isProcessing = false;
               });
-              // We hoeven de camera niet te herstarten,
-              // want de stream loopt nog, we blokkeren hem alleen niet meer.
             },
           ),
         ],
@@ -180,13 +184,11 @@ class _ScannerScreenState extends State<ScannerScreen> {
         child: Center(child: CupertinoActivityIndicator()),
       );
     }
-
     return CupertinoPageScaffold(
       navigationBar: const CupertinoNavigationBar(middle: Text('Scan Strip')),
       child: Stack(
         children: [
           CameraPreview(_controller!),
-          // Hier kunnen we later een mooi wit kader (overlay) overheen zetten
           Center(
             child: Container(
               width: 250,

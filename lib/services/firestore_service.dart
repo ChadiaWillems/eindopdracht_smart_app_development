@@ -8,4 +8,11 @@ class FirestoreService {
         .collection("medscan/59I6fSeQApRy4CpeKLGHGJoR3D23/medicines")
         .snapshots();
   }
+
+  Future<DocumentSnapshot<Map<String, dynamic>>> getMedicineById(String id) {
+    return db
+        .collection("medscan/59I6fSeQApRy4CpeKLGHGJoR3D23/medicines")
+        .doc(id)
+        .get();
+  }
 }
