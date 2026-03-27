@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "398433093317",
+    "project_id": "auth-demo-cw",
+    "storage_bucket": "auth-demo-cw.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:398433093317:android:25443075188c9c0fda12ac",
+        "android_client_info": {
+          "package_name": "com.example.medscan"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAkN517MM13ooy4amAPI5POG70kPvyRydI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
