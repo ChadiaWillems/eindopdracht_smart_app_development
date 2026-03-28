@@ -35,7 +35,7 @@ class GenericBottomNav extends StatelessWidget {
           case 1:
             return CupertinoPageScaffold(
               navigationBar: GenericHeader(),
-              child: Center(child: Text('Reader Mode Tab')),
+              child: Center(child: Text('Schedule Tab')),
             );
           case 2:
             return CupertinoPageScaffold(

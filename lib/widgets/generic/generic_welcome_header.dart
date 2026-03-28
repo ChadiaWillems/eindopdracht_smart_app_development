@@ -16,12 +16,7 @@ class GenericWelcomeHeader extends StatelessWidget
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.only(
-        left: 24.0,
-        right: 24.0,
-        top: 60.0,
-        bottom: 16.0,
-      ),
+      padding: EdgeInsets.all(16.0),
       decoration: const BoxDecoration(
         color: CupertinoColors.white,
         border: Border(

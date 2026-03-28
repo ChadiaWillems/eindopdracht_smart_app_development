@@ -123,7 +123,13 @@ class _ScannerScreenState extends State<ScannerScreen> {
           _hasFoundMatch = true;
         });
         print("🔥 MATCH GEVONDEN: $matchedRealName");
-        _showMatchFound(matchedRealName);
+
+        Navigator.of(context).push(
+          CupertinoPageRoute(
+            builder: (context) => MedicineScreen(medicineName: matchedRealName),
+          ),
+        );
+
         return;
       }
     } catch (e) {
@@ -132,42 +138,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
     await Future.delayed(const Duration(seconds: 1));
     _isProcessing = false;
-  }
-
-  void _showMatchFound(String medicineName) {
-    showCupertinoDialog(
-      context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: const Text('Medicijn Herkend!'),
-        content: Text('Ik heb $medicineName gevonden op de strip.'),
-        actions: [
-          CupertinoDialogAction(
-            isDefaultAction: true,
-            child: const Text('Bekijk details'),
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.of(context).push(
-                CupertinoPageRoute(
-                  builder: (context) =>
-                      MedicineScreen(medicineName: medicineName),
-                ),
-              );
-            },
-          ),
-          CupertinoDialogAction(
-            isDestructiveAction: true,
-            child: const Text('Scan opnieuw'),
-            onPressed: () {
-              Navigator.pop(context);
-              setState(() {
-                _hasFoundMatch = false;
-                _isProcessing = false;
-              });
-            },
-          ),
-        ],
-      ),
-    );
   }
 
   @override

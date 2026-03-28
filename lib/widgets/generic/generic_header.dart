@@ -7,11 +7,7 @@ class GenericHeader extends StatelessWidget
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoNavigationBar(
-      leading: const Icon(CupertinoIcons.back),
-      middle: const Text('MedScan'),
-      trailing: const Icon(CupertinoIcons.settings),
-    );
+    return CupertinoNavigationBar(middle: const Text('MedScan'));
   }
 
   @override

@@ -1,5 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:medscan/firebase_options.dart';
 import 'package:medscan/widgets/generic/generic_bottom_nav.dart';
 
@@ -14,12 +14,9 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return const CupertinoApp(
       debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        body: Center(child: Text('Hello World!')),
-        bottomNavigationBar: GenericBottomNav(),
-      ),
+      home: GenericBottomNav(),
     );
   }
 }

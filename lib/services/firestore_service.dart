@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class FirestoreService {
   final db = FirebaseFirestore.instance;
+  final _auth = FirebaseAuth.instance;
 
   Stream<QuerySnapshot<Map<String, dynamic>>> getMedicines() {
     return db
@@ -14,5 +16,57 @@ class FirestoreService {
         .collection("medscan/59I6fSeQApRy4CpeKLGHGJoR3D23/medicines")
         .doc(id)
         .get();
+  }
+
+  Future<void> createUserProfile(String uid, String name, String email) async {
+    await db
+        .collection('medscan/59I6fSeQApRy4CpeKLGHGJoR3D23/users')
+        .doc(uid)
+        .set({
+          'name': name,
+          'email': email,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+  }
+
+  Future<DocumentSnapshot<Map<String, dynamic>>> getUserProfile(String uid) {
+    return db
+        .collection('medscan/59I6fSeQApRy4CpeKLGHGJoR3D23/users')
+        .doc(uid)
+        .get();
+  }
+
+  Future<void> addMedicineToUserSchedule({
+    required String medicineName,
+    required Map<String, dynamic> medicineData,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    final userScheduleColl = db
+        .collection('medscan/59I6fSeQApRy4CpeKLGHGJoR3D23/users')
+        .doc(user.uid)
+        .collection('schedule');
+
+    // De drie dagdelen die we controleren
+    final periods = ['morning', 'afternoon', 'evening'];
+
+    for (var period in periods) {
+      int amount = medicineData[period] ?? 0;
+
+      // Alleen toevoegen als het aantal groter is dan 0
+      if (amount > 0) {
+        await userScheduleColl.doc(period).set({
+          'items': FieldValue.arrayUnion([
+            {
+              'name': medicineName,
+              'amount': amount,
+              'strength': medicineData['strength'] ?? '',
+              'isTaken': false,
+            },
+          ]),
+        }, SetOptions(merge: true));
+      }
+    }
   }
 }
