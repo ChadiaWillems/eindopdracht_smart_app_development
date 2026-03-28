@@ -69,4 +69,27 @@ class FirestoreService {
       }
     }
   }
+
+  Future<void> updateNotificationSettings(
+    String uid,
+    Map<String, dynamic> settings,
+  ) async {
+    await db
+        .collection('medscan/59I6fSeQApRy4CpeKLGHGJoR3D23/users')
+        .doc(uid)
+        .collection('settings')
+        .doc('notifications')
+        .set(settings, SetOptions(merge: true));
+  }
+
+  Stream<DocumentSnapshot<Map<String, dynamic>>> getNotificationSettings(
+    String uid,
+  ) {
+    return db
+        .collection('medscan/59I6fSeQApRy4CpeKLGHGJoR3D23/users')
+        .doc(uid)
+        .collection('settings')
+        .doc('notifications')
+        .snapshots();
+  }
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:medscan/screens/home_screen.dart';
+import 'package:medscan/screens/schedule_screen.dart';
+import 'package:medscan/screens/settings_screen.dart';
 import 'package:medscan/widgets/generic/generic_header.dart';
 
 class GenericBottomNav extends StatelessWidget {
@@ -34,13 +36,13 @@ class GenericBottomNav extends StatelessWidget {
             );
           case 1:
             return CupertinoPageScaffold(
-              navigationBar: GenericHeader(),
-              child: Center(child: Text('Schedule Tab')),
+              navigationBar: GenericHeader(title: 'Schedule'),
+              child: const ScheduleScreen(),
             );
           case 2:
             return CupertinoPageScaffold(
-              navigationBar: GenericHeader(),
-              child: Center(child: Text('Settings Tab')),
+              navigationBar: GenericHeader(title: 'Settings'),
+              child: const SettingsScreen(),
             );
           default:
             return CupertinoPageScaffold(

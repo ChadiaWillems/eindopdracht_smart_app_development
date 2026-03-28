@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 
 class GenericHeader extends StatelessWidget
     implements ObstructingPreferredSizeWidget {
-  const GenericHeader({super.key});
+  final String title;
+  const GenericHeader({super.key, this.title = 'MedScan'});
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoNavigationBar(middle: const Text('MedScan'));
+    return CupertinoNavigationBar(middle: Text(title));
   }
 
   @override

@@ -2,7 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:medscan/screens/scanner_screen.dart';
 import 'package:medscan/services/firestore_service.dart';
-import 'package:medscan/widgets/generic/generic_welcome_header.dart'; // Importeer je nieuwe widget
+import 'package:medscan/widgets/generic/generic_header.dart';
+import 'package:medscan/widgets/generic/generic_welcome_header.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -11,9 +12,8 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final FirestoreService _firestoreService = FirestoreService();
 
-    
-
     return CupertinoPageScaffold(
+      navigationBar: const GenericHeader(),
       child: SafeArea(
         child: Column(
           children: [
