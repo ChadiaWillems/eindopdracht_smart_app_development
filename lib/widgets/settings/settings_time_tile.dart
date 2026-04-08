@@ -28,9 +28,37 @@ class SettingsTimeTile extends StatelessWidget {
         "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}",
         style: CupertinoTheme.of(context).textTheme.textStyle,
       ),
-      onTap: () async {
-        print('Tapped on $title tile');
-        print('tijd verandern: ${time.hour}:${time.minute}');
+      onTap: () {
+        showCupertinoModalPopup(
+          context: context,
+          builder: (BuildContext context) => Container(
+            height: 250,
+            color: CupertinoColors.systemBackground.resolveFrom(context),
+            child: Column(
+              children: [
+                // Een kleine balk met 'Klaar' knop
+                Container(
+                  height: 44,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: CupertinoButton(
+                      child: const Text('Klaar'),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: CupertinoDatePicker(
+                    mode: CupertinoDatePickerMode.time,
+                    initialDateTime: time,
+                    use24hFormat: true,
+                    onDateTimeChanged: onTimeChanged,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
       },
     );
   }

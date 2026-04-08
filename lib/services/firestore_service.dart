@@ -70,19 +70,53 @@ class FirestoreService {
     }
   }
 
-  Future<void> updateNotificationSettings(
+  // get user schedule stream
+  Stream<DocumentSnapshot<Map<String, dynamic>>> getUserSchedule(
     String uid,
-    Map<String, dynamic> settings,
+    String moment,
+  ) {
+    return db
+        .collection('medscan/59I6fSeQApRy4CpeKLGHGJoR3D23/users')
+        .doc(uid)
+        .collection('schedule')
+        .doc(moment) // morning, afternoon, evening
+        .snapshots();
+  }
+
+  // toggle isTaken in schedule array
+  Future<void> toggleDoseInArray(
+    String uid,
+    String moment,
+    int index,
+    List currentItems,
   ) async {
+    List updatedItems = List.from(currentItems);
+    updatedItems[index]['isTaken'] = !updatedItems[index]['isTaken'];
+
     await db
         .collection('medscan/59I6fSeQApRy4CpeKLGHGJoR3D23/users')
         .doc(uid)
-        .collection('settings')
-        .doc('notifications')
-        .set(settings, SetOptions(merge: true));
+        .collection('schedule')
+        .doc(moment)
+        .update({'items': updatedItems});
   }
 
-  Stream<DocumentSnapshot<Map<String, dynamic>>> getNotificationSettings(
+  // Deze functie geeft een 'Stream' terug.
+  // Dat betekent dat de app live blijft luisteren naar veranderingen in dat document.
+  Stream<DocumentSnapshot<Map<String, dynamic>>> getScheduleMoment(
+    String uid,
+    String moment,
+  ) {
+    return db
+        .collection('medscan/59I6fSeQApRy4CpeKLGHGJoR3D23/users')
+        .doc(uid)
+        .collection('schedule')
+        .doc(moment) // Hier vullen we 'morning', 'afternoon' of 'evening' in
+        .snapshots(); // .snapshots() zorgt voor de live verbinding
+  }
+
+  // Haal alle instellingen op
+  Future<DocumentSnapshot<Map<String, dynamic>>> getNotificationSettings(
     String uid,
   ) {
     return db
@@ -90,6 +124,28 @@ class FirestoreService {
         .doc(uid)
         .collection('settings')
         .doc('notifications')
-        .snapshots();
+        .get();
   }
+
+  // Update de instellingen (werkt voor zowel bools als strings)
+  Future<void> updateNotificationSettings(
+    String uid,
+    Map<String, dynamic> data,
+  ) {
+    return db
+        .collection('medscan/59I6fSeQApRy4CpeKLGHGJoR3D23/users')
+        .doc(uid)
+        .collection('settings')
+        .doc('notifications')
+        .set(data, SetOptions(merge: true));
+  }
+
+  Stream<DocumentSnapshot<Map<String, dynamic>>> getNotificationSettingsStream(String uid) {
+  return db
+      .collection('medscan/59I6fSeQApRy4CpeKLGHGJoR3D23/users')
+      .doc(uid)
+      .collection('settings')
+      .doc('notifications')
+      .snapshots(); 
+}
 }

@@ -37,7 +37,7 @@ class GenericBottomNav extends StatelessWidget {
           case 1:
             return CupertinoPageScaffold(
               navigationBar: GenericHeader(title: 'Schedule'),
-              child: const ScheduleScreen(),
+              child: ScheduleScreen(),
             );
           case 2:
             return CupertinoPageScaffold(
