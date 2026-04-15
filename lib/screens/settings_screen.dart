@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:medscan/screens/home_screen.dart';
 import 'package:medscan/screens/login_screen.dart';
 import 'package:medscan/services/firestore_service.dart';
 import 'package:medscan/widgets/settings/settings_acount_tile.dart';
@@ -115,11 +116,62 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // Bouwt de account tegel met de naam uit Firestore
+  // Voeg 'String currentName' toe als parameter
+  void _showEditProfileDialog(String currentName) {
+    final TextEditingController nameController = TextEditingController(
+      // Als de naam 'Laden...' is, tonen we een lege string, anders de echte naam
+      text: currentName == 'Laden...' ? "" : currentName,
+    );
+
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text("Profiel bewerken"),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: CupertinoTextField(
+            controller: nameController,
+            placeholder: "Je naam",
+            textCapitalization: TextCapitalization.words,
+            autofocus: true, // Zorgt dat het toetsenbord direct opent
+          ),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text("Annuleer"),
+            onPressed: () => Navigator.pop(context),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            child: const Text("Opslaan"),
+            onPressed: () async {
+              if (nameController.text.trim().isNotEmpty) {
+                await _firestoreService.updateUserProfile(uid, {
+                  'name': nameController.text.trim(),
+                });
+                setState(() {}); // Hiermee ververs je de FutureBuilder
+                Navigator.pop(context);
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAccountTile() {
     final user = FirebaseAuth.instance.currentUser;
+
     if (user == null) {
-      return const SettingsAcountTile(name: 'Gast', email: 'Niet ingelogd');
+      return SettingsAcountTile(
+        name: 'Gast',
+        email: 'Tik om in te loggen',
+        onTap: () {
+          Navigator.of(
+            context,
+          ).push(CupertinoPageRoute(builder: (context) => const LoginScreen()));
+        },
+      );
     }
 
     return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
@@ -132,8 +184,88 @@ class _SettingsScreenState extends State<SettingsScreen> {
           final data = snapshot.data!.data();
           name = data?['name'] ?? 'Gebruiker';
         }
-        return SettingsAcountTile(name: name, email: email);
+        return SettingsAcountTile(
+          name: name,
+          email: email,
+          onTap: () => _showEditProfileDialog(name),
+        );
       },
+    );
+  }
+
+  Future<void> _deleteUserAccount() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      // 1. Stop alle meldingen op de iPhone
+      await _notificationService.cancelAll();
+
+      // 2. Verwijder de data uit Firestore
+      await _firestoreService.deleteUserProfile(user.uid);
+
+      // 3. Verwijder de gebruiker uit Firebase Auth
+      await user.delete();
+
+      // 4. Stuur terug naar login scherm en wis de navigatie geschiedenis
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          CupertinoPageRoute(builder: (context) => const LoginScreen()),
+          (route) => false,
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        _showErrorAlert(
+          "Beveiligingsregel: Je moet opnieuw inloggen voordat je je account kunt verwijderen.",
+        );
+      } else {
+        _showErrorAlert("Er ging iets mis: ${e.message}");
+      }
+    } catch (e) {
+      _showErrorAlert("Fout: $e");
+    }
+  }
+
+  // Hulpfunctie voor foutmeldingen
+  void _showErrorAlert(String message) {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text("Fout"),
+        content: Text(message),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text("OK"),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog() {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text("Account verwijderen?"),
+        content: const Text(
+          "Weet je het zeker? Al je medicatie-instellingen en herinneringen worden definitief gewist. Dit kan niet ongedaan worden gemaakt.",
+        ),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text("Annuleer"),
+            onPressed: () => Navigator.pop(context),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true, // Maakt de tekst rood
+            child: const Text("Verwijder account"),
+            onPressed: () async {
+              await _deleteUserAccount();
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -162,7 +294,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               await _firestoreService.updateNotificationSettings(uid, {
                 'remindersEnabled': newValue,
               });
-              _syncNotifications();
+              await _syncNotifications();
             },
           ),
 
@@ -178,7 +310,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               await _firestoreService.updateNotificationSettings(uid, {
                 'soundsEnabled': newValue,
               });
-              _syncNotifications();
+              await _syncNotifications();
             },
           ),
 
@@ -190,20 +322,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
 
-          // --- Tijd: Morgen ---
+          // --- Tijd: Ochtend ---
           SettingsTimeTile(
-            title: 'Morgen dosis',
+            title: 'Ochtend dosis',
             icon: CupertinoIcons.sun_dust_fill, // Toegevoegd
             iconColor: CupertinoColors.systemOrange, // Toegevoegd
             time: _parseTimeString(_morningTime),
-            onTimeChanged: (DateTime newTime) {
+            onTimeChanged: (DateTime newTime) async {
               String formatted =
                   "${newTime.hour.toString().padLeft(2, '0')}:${newTime.minute.toString().padLeft(2, '0')}";
               setState(() => _morningTime = formatted);
-              _firestoreService.updateNotificationSettings(uid, {
+              await _firestoreService.updateNotificationSettings(uid, {
                 'morningTime': formatted,
               });
-              _syncNotifications();
+              await _syncNotifications();
             },
           ),
 
@@ -213,14 +345,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: CupertinoIcons.sun_max_fill, // Toegevoegd
             iconColor: CupertinoColors.systemYellow, // Toegevoegd
             time: _parseTimeString(_afternoonTime),
-            onTimeChanged: (DateTime newTime) {
+            onTimeChanged: (DateTime newTime) async {
               String formatted =
                   "${newTime.hour.toString().padLeft(2, '0')}:${newTime.minute.toString().padLeft(2, '0')}";
               setState(() => _afternoonTime = formatted);
-              _firestoreService.updateNotificationSettings(uid, {
+              await _firestoreService.updateNotificationSettings(uid, {
                 'afternoonTime': formatted,
               });
-              _syncNotifications();
+              await _syncNotifications();
             },
           ),
 
@@ -230,14 +362,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: CupertinoIcons.moon_stars_fill, // Toegevoegd
             iconColor: CupertinoColors.systemIndigo, // Toegevoegd
             time: _parseTimeString(_eveningTime),
-            onTimeChanged: (DateTime newTime) {
+            onTimeChanged: (DateTime newTime) async {
               String formatted =
                   "${newTime.hour.toString().padLeft(2, '0')}:${newTime.minute.toString().padLeft(2, '0')}";
               setState(() => _eveningTime = formatted);
-              _firestoreService.updateNotificationSettings(uid, {
+              await _firestoreService.updateNotificationSettings(uid, {
                 'eveningTime': formatted,
               });
-              _syncNotifications();
+              await _syncNotifications();
             },
           ),
 
@@ -265,8 +397,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   onTap: () async {
                     await FirebaseAuth.instance.signOut();
-                    setState(() {});
+
+                    if (mounted) {
+                      Navigator.of(
+                        context,
+                        rootNavigator: true,
+                      ).pushAndRemoveUntil(
+                        CupertinoPageRoute(
+                          builder: (context) => const HomeScreen(),
+                        ),
+                        (route) => false,
+                      );
+                    }
                   },
+                ),
+                CupertinoListTile(
+                  title: const Text(
+                    'Account verwijderen',
+                    style: TextStyle(color: CupertinoColors.destructiveRed),
+                  ),
+                  leading: const Icon(
+                    CupertinoIcons.trash,
+                    color: CupertinoColors.destructiveRed,
+                  ),
+                  onTap: () =>
+                      _showDeleteAccountDialog(), // We maken deze functie zo
                 ),
               ],
             ),

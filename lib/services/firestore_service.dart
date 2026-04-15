@@ -140,12 +140,30 @@ class FirestoreService {
         .set(data, SetOptions(merge: true));
   }
 
-  Stream<DocumentSnapshot<Map<String, dynamic>>> getNotificationSettingsStream(String uid) {
-  return db
-      .collection('medscan/59I6fSeQApRy4CpeKLGHGJoR3D23/users')
-      .doc(uid)
-      .collection('settings')
-      .doc('notifications')
-      .snapshots(); 
-}
+  Stream<DocumentSnapshot<Map<String, dynamic>>> getNotificationSettingsStream(
+    String uid,
+  ) {
+    return db
+        .collection('medscan/59I6fSeQApRy4CpeKLGHGJoR3D23/users')
+        .doc(uid)
+        .collection('settings')
+        .doc('notifications')
+        .snapshots();
+  }
+
+  // update user profile
+  Future<void> updateUserProfile(String uid, Map<String, dynamic> data) {
+    return db
+        .collection('medscan/59I6fSeQApRy4CpeKLGHGJoR3D23/users')
+        .doc(uid)
+        .set(data, SetOptions(merge: true));
+  }
+
+  // delete user profile
+  Future<void> deleteUserProfile(String uid) {
+    return db
+        .collection('medscan/59I6fSeQApRy4CpeKLGHGJoR3D23/users')
+        .doc(uid)
+        .delete();
+  }
 }
