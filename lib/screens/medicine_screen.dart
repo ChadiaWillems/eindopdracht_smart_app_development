@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:medscan/screens/home_screen.dart';
 import 'package:medscan/screens/login_screen.dart';
+import 'package:medscan/screens/schedule_screen.dart';
 import 'package:medscan/services/firestore_service.dart';
 import 'package:medscan/widgets/generic/generic_button.dart';
 import 'package:medscan/widgets/medicine/medicine_dosing_schedule_card.dart';
@@ -13,18 +15,63 @@ class MedicineScreen extends StatelessWidget {
 
   const MedicineScreen({super.key, required this.medicineName});
 
-  Future<void> _handleSaveToSchedule(Map<String, dynamic> data) async {
+  Future<void> _handleSaveToSchedule(
+    BuildContext context,
+    Map<String, dynamic> data,
+  ) async {
     try {
-      // Gebruik nu de 'data' die we binnenkrijgen
       await FirestoreService().addMedicineToUserSchedule(
         medicineName: medicineName,
         medicineData: data,
       );
-      print("Medicijn toegevoegd aan schema: $medicineName");
 
-      // Optioneel: Toon hier een succes-berichtje
+      // Toon een bevestiging aan de gebruiker
+      if (context.mounted) {
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: const Icon(
+              CupertinoIcons.check_mark_circled_solid,
+              color: CupertinoColors.activeGreen,
+              size: 50,
+            ),
+            content: Text('$medicineName is toegevoegd aan je schema!'),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('Bekijk schema'),
+                onPressed: () {
+                  Navigator.pop(context); // Sluit de popup
+                  Navigator.pop(context); // Ga terug uit het detail scherm
+                  Navigator.of(context).push(
+                    CupertinoPageRoute(
+                      builder: (context) => const ScheduleScreen(),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      }
     } catch (e) {
-      print("Fout bij toevoegen aan schema: $e");
+      // Toon foutmelding als het misgaat
+      if (context.mounted) {
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: const Text('Fout'),
+            content: const Text(
+              'Kon het medicijn niet opslaan. Probeer het later opnieuw.',
+            ),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('OK'),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        );
+      }
     }
   }
 
@@ -137,26 +184,67 @@ class MedicineScreen extends StatelessWidget {
             right: 0,
             child: Container(
               padding: const EdgeInsets.all(16),
+              // We voegen een witte achtergrond met een lichte schaduw toe zodat de knoppen goed opvallen
+              decoration: BoxDecoration(
+                color: CupertinoColors.systemBackground.withOpacity(0.9),
+                border: const Border(
+                  top: BorderSide(
+                    color: CupertinoColors.systemGrey5,
+                    width: 0.5,
+                  ),
+                ),
+              ),
               child: SafeArea(
                 top: false,
-                child: GenericButton(
-                  label: 'Opslaan in schema',
-                  onPressed: () async {
-                    // Check of er een gebruiker is ingelogd
-                    final User? user = FirebaseAuth.instance.currentUser;
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 1. De Opslaan Knop (met de StreamBuilder die we net maakten)
+                    StreamBuilder<User?>(
+                      stream: FirebaseAuth.instance.authStateChanges(),
+                      builder: (context, snapshot) {
+                        final bool isLoggedIn = snapshot.hasData;
+                        return GenericButton(
+                          label: 'Opslaan in schema',
+                          onPressed: () async {
+                            if (!isLoggedIn) {
+                              _showLoginRequiredPopup(context);
+                            } else {
+                              final medicineDoc = await FirestoreService()
+                                  .getMedicineById(medicineName);
+                              if (medicineDoc.exists && context.mounted) {
+                                _handleSaveToSchedule(
+                                  context,
+                                  medicineDoc.data()!,
+                                );
+                              }
+                            }
+                          },
+                        );
+                      },
+                    ),
 
-                    if (user == null) {
-                      // NIET ingelogd -> Toon de popup
-                      print("Gebruiker is NIET ingelogd");
-                      _showLoginRequiredPopup(context);
-                    } else {
-                      final medicineDoc = await FirestoreService()
-                          .getMedicineById(medicineName);
-                      if (medicineDoc.exists) {
-                        _handleSaveToSchedule(medicineDoc.data()!);
-                      }
-                    }
-                  },
+                    const SizedBox(height: 8), // Wat ruimte tussen de knoppen
+                    // 2. De Annuleren Knop
+                    CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      child: const Text(
+                        'Annuleren',
+                        style: TextStyle(
+                          color: CupertinoColors.destructiveRed,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      onPressed: () {
+                        // Dit brengt de gebruiker direct terug naar de HomeScreen/Scanner
+                        Navigator.of(context).push(
+                          CupertinoPageRoute(
+                            builder: (context) => const HomeScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ),
             ),

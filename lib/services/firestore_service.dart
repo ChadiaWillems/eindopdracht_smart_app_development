@@ -166,4 +166,23 @@ class FirestoreService {
         .doc(uid)
         .delete();
   }
+
+  // delete medicine from user schedule
+  Future<void> removeMedicineFromSchedule(
+    String uid,
+    String moment,
+    int index,
+    List items,
+  ) async {
+    // We maken een kopie van de lijst en verwijderen het item op de specifieke index
+    List updatedItems = List.from(items);
+    updatedItems.removeAt(index);
+
+    return FirebaseFirestore.instance
+        .collection('medscan/59I6fSeQApRy4CpeKLGHGJoR3D23/users')
+        .doc(uid)
+        .collection('schedule')
+        .doc(moment)
+        .update({'items': updatedItems});
+  }
 }

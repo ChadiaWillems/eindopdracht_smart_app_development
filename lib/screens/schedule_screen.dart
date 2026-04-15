@@ -102,6 +102,29 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
+  Future<bool?> _showDeleteConfirmation(BuildContext context, String name) {
+    return showCupertinoDialog<bool>(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text("Medicijn verwijderen"),
+        content: Text(
+          "Weet je zeker dat je $name uit je schema wilt verwijderen?",
+        ),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text("Annuleer"),
+            onPressed: () => Navigator.pop(context, false),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            child: const Text("Verwijder"),
+            onPressed: () => Navigator.pop(context, true),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildScheduleSection(
     String moment,
     String timeLabel,
@@ -111,17 +134,17 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       stream: _firestoreService.getScheduleMoment(uid, moment),
       builder: (context, snapshot) {
+        // HIER definiëren we 'items' weer vanuit de database snapshot
         List items = [];
         if (snapshot.hasData && snapshot.data!.exists) {
           items = snapshot.data!.data()?['items'] ?? [];
         }
 
-        // We gebruiken IntrinsicHeight zodat de lijn links mee groeit met de stapel kaarten rechts
         return IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. LINKERKOLOM: Tijd en Icoon (slechts één keer!)
+              // 1. LINKERKOLOM: Tijd en Icoon
               SizedBox(
                 width: 50,
                 child: Column(
@@ -139,16 +162,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 ),
               ),
 
-              // 2. MIDDEN: De verticale lijn die doorloopt
+              // 2. MIDDEN: Verticale lijn
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
                   children: [
-                    const SizedBox(height: 28), // Lijn start onder het icoon
+                    const SizedBox(height: 28),
                     Expanded(
                       child: Container(
                         width: 1,
-                        // Alleen onzichtbaar als het de allerlaatste sectie is EN er geen items zijn
                         color: (isLastSection && items.isEmpty)
                             ? CupertinoColors.transparent
                             : CupertinoColors.systemGrey4,
@@ -158,13 +180,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 ),
               ),
 
-              // 3. RECHTERKOLOM: De lijst met medicijnen
+              // 3. RECHTERKOLOM: De lijst met swipe-bare kaarten
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 24),
                   child: items.isEmpty
                       ? Container(
-                          // We geven een lege sectie een minimale hoogte
                           constraints: const BoxConstraints(minHeight: 80),
                           alignment: Alignment.centerLeft,
                           child: const Text(
@@ -183,17 +204,48 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 12.0),
-                              child: ScheduleMedicineCard(
-                                medicineName: data['name'],
-                                dosage: data['strength'] ?? '',
-                                isTaken: data['isTaken'] ?? false,
-                                onToggleTaken: () =>
-                                    _firestoreService.toggleDoseInArray(
-                                      uid,
-                                      moment,
-                                      index,
-                                      items,
-                                    ),
+                              child: Dismissible(
+                                key: Key('${data['name']}_$index'),
+                                direction: DismissDirection.endToStart,
+                                background: Container(
+                                  alignment: Alignment.centerRight,
+                                  padding: const EdgeInsets.only(right: 20),
+                                  decoration: BoxDecoration(
+                                    color: CupertinoColors.destructiveRed,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(
+                                    CupertinoIcons.trash,
+                                    color: CupertinoColors.white,
+                                  ),
+                                ),
+                                confirmDismiss: (direction) async {
+                                  return await _showDeleteConfirmation(
+                                    context,
+                                    data['name'] ?? 'dit medicijn',
+                                  );
+                                },
+                                onDismissed: (direction) {
+                                  // Nu is 'items' hier ook bekend!
+                                  _firestoreService.removeMedicineFromSchedule(
+                                    uid,
+                                    moment,
+                                    index,
+                                    items,
+                                  );
+                                },
+                                child: ScheduleMedicineCard(
+                                  medicineName: data['name'] ?? 'Onbekend',
+                                  dosage: data['strength'] ?? '',
+                                  isTaken: data['isTaken'] ?? false,
+                                  onToggleTaken: () =>
+                                      _firestoreService.toggleDoseInArray(
+                                        uid,
+                                        moment,
+                                        index,
+                                        items,
+                                      ),
+                                ),
                               ),
                             );
                           }).toList(),
