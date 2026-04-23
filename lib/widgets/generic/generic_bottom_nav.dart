@@ -8,6 +8,10 @@ import 'package:medscan/screens/settings_screen.dart';
 class GenericBottomNav extends StatefulWidget {
   const GenericBottomNav({super.key});
 
+  static CupertinoTabController controller = CupertinoTabController(
+    initialIndex: 0,
+  );
+
   @override
   State<GenericBottomNav> createState() => _GenericBottomNavState();
 }
@@ -28,6 +32,7 @@ class _GenericBottomNavState extends State<GenericBottomNav> {
     final user = FirebaseAuth.instance.currentUser;
 
     return CupertinoTabScaffold(
+      controller: GenericBottomNav.controller,
       tabBar: CupertinoTabBar(
         items: const [
           BottomNavigationBarItem(
@@ -49,7 +54,7 @@ class _GenericBottomNavState extends State<GenericBottomNav> {
           builder: (context) {
             switch (index) {
               case 0:
-                return const HomeScreen(); 
+                return const HomeScreen();
               case 1:
                 return user == null
                     ? const LoginScreen()

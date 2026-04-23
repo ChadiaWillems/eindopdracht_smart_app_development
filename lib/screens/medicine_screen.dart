@@ -5,6 +5,7 @@ import 'package:medscan/screens/home_screen.dart';
 import 'package:medscan/screens/login_screen.dart';
 import 'package:medscan/screens/schedule_screen.dart';
 import 'package:medscan/services/firestore_service.dart';
+import 'package:medscan/widgets/generic/generic_bottom_nav.dart';
 import 'package:medscan/widgets/generic/generic_button.dart';
 import 'package:medscan/widgets/medicine/medicine_dosing_schedule_card.dart';
 import 'package:medscan/widgets/medicine/medicine_header.dart';
@@ -25,7 +26,6 @@ class MedicineScreen extends StatelessWidget {
         medicineData: data,
       );
 
-  
       if (context.mounted) {
         showCupertinoDialog(
           context: context,
@@ -40,13 +40,9 @@ class MedicineScreen extends StatelessWidget {
               CupertinoDialogAction(
                 child: const Text('Bekijk schema'),
                 onPressed: () {
-                  Navigator.pop(context); 
-                  Navigator.pop(context); 
-                  Navigator.of(context).push(
-                    CupertinoPageRoute(
-                      builder: (context) => const ScheduleScreen(),
-                    ),
-                  );
+                  Navigator.pop(context);
+                  GenericBottomNav.controller.index = 1;
+                  Navigator.of(context).popUntil((route) => route.isFirst);
                 },
               ),
             ],

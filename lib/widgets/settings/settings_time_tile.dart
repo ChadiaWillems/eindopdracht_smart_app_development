@@ -36,7 +36,6 @@ class SettingsTimeTile extends StatelessWidget {
             color: CupertinoColors.systemBackground.resolveFrom(context),
             child: Column(
               children: [
-                // Een kleine balk met 'Klaar' knop
                 Container(
                   height: 44,
                   child: Align(

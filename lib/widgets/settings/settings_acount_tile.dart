@@ -14,7 +14,7 @@ class SettingsAcountTile extends StatelessWidget {
 
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap, // Hier reageren we op de klik
+      onTap: onTap, 
       child: Container(
         color: CupertinoColors.white,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
