@@ -1,9 +1,11 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/cupertino.dart';
 import 'package:medscan/screens/home_screen.dart';
 import 'package:medscan/screens/login_screen.dart';
 import 'package:medscan/screens/schedule_screen.dart';
 import 'package:medscan/screens/settings_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:medscan/providers/auth_provider.dart';
 
 class GenericBottomNav extends StatefulWidget {
   const GenericBottomNav({super.key});
@@ -29,7 +31,15 @@ class _GenericBottomNavState extends State<GenericBottomNav> {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    final auth = Provider.of<AuthProvider>(context);
+
+    if (auth.isLoading) {
+      return const CupertinoPageScaffold(
+        child: Center(child: CupertinoActivityIndicator()),
+      );
+    }
+
+    final user = auth.user;
 
     return CupertinoTabScaffold(
       controller: GenericBottomNav.controller,

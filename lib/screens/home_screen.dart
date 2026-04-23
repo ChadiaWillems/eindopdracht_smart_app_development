@@ -1,23 +1,23 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:medscan/providers/auth_provider.dart';
 import 'package:medscan/screens/scanner_screen.dart';
-import 'package:medscan/services/firestore_service.dart';
 import 'package:medscan/widgets/generic/generic_header.dart';
 import 'package:medscan/widgets/generic/generic_welcome_header.dart';
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final FirestoreService _firestoreService = FirestoreService();
+    final auth = Provider.of<AuthProvider>(context);
 
     return CupertinoPageScaffold(
       navigationBar: const GenericHeader(),
       child: SafeArea(
         child: Column(
           children: [
-            const GenericWelcomeHeader(),
+            GenericWelcomeHeader(userName: auth.userName),
             Expanded(
               child: Center(
                 child: Column(

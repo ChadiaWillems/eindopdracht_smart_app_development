@@ -1,20 +1,19 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:medscan/services/firestore_service.dart';
 
 class GenericWelcomeHeader extends StatelessWidget
     implements PreferredSizeWidget {
   final String subtitle;
+  final String userName;
 
   const GenericWelcomeHeader({
     super.key,
     this.subtitle = 'Scan je medicijn om te beginnen',
+    this.userName = 'daar',
   });
 
   @override
   Widget build(BuildContext context) {
-    final FirestoreService _firestoreService = FirestoreService();
+    final String firstName = userName.split(' ')[0];
 
     return Container(
       width: double.infinity,
@@ -31,35 +30,7 @@ class GenericWelcomeHeader extends StatelessWidget
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-
-            StreamBuilder<User?>(
-              stream: FirebaseAuth.instance.authStateChanges(),
-              builder: (context, authSnapshot) {
-                if (!authSnapshot.hasData || authSnapshot.data == null) {
-                  return _buildTitle('Hallo daar!');
-                }
-
-                return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-                  future: _firestoreService.getUserProfile(
-                    authSnapshot.data!.uid,
-                  ),
-                  builder: (context, profileSnapshot) {
-                    if (profileSnapshot.connectionState ==
-                        ConnectionState.waiting) {
-                      return _buildTitle('Hallo...');
-                    }
-
-                    final data = profileSnapshot.data?.data();
-                    final String fullName = data?['name'] ?? 'Gebruiker';
-                    final String firstName = fullName.split(' ')[0];
-
-                    return _buildTitle('Hallo $firstName!');
-                  },
-                );
-              },
-            ),
-
-
+            _buildTitle('Hallo $firstName!'),
             Text(
               subtitle,
               style: const TextStyle(

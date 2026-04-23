@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/cupertino.dart';
 import 'package:medscan/screens/home_screen.dart';
 import 'package:medscan/screens/login_screen.dart';
@@ -9,6 +9,8 @@ import 'package:medscan/widgets/settings/settings_switch_tile.dart';
 import 'package:medscan/widgets/settings/settings_time_tile.dart';
 import 'package:medscan/services/notification_service.dart';
 import '../widgets/settings/settings_switch_tile.dart';
+import 'package:provider/provider.dart';
+import 'package:medscan/providers/auth_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -56,8 +58,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return;
     }
 
-    await _notificationService
-        .cancelAll();
+    await _notificationService.cancelAll();
 
     await _notificationService.scheduleDailyNotification(
       id: 1,
@@ -151,43 +152,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildAccountTile() {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        final user = snapshot.data;
+  Widget _buildAccountTile(AuthProvider auth) {
+    if (!auth.isLoggedIn) {
+      return SettingsAcountTile(
+        name: 'Gast',
+        email: 'Tik om in te loggen',
+        onTap: () {
+          Navigator.of(
+            context,
+          ).push(CupertinoPageRoute(builder: (context) => const LoginScreen()));
+        },
+      );
+    }
 
-        if (user == null) {
-          return SettingsAcountTile(
-            name: 'Gast',
-            email: 'Tik om in te loggen',
-            onTap: () {
-              Navigator.of(context).push(
-                CupertinoPageRoute(builder: (context) => const LoginScreen()),
-              );
-            },
-          );
-        }
-
-        return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-          future: _firestoreService.getUserProfile(user.uid),
-          builder: (context, profileSnapshot) {
-            String name = 'Laden...';
-            String email = user.email ?? 'Geen e-mail';
-
-            if (profileSnapshot.hasData && profileSnapshot.data!.exists) {
-              final data = profileSnapshot.data!.data();
-              name = data?['name'] ?? 'Gebruiker';
-            }
-            return SettingsAcountTile(
-              name: name,
-              email: email,
-              onTap: () =>
-                  _showEditProfileDialog(name, user.uid),
-            );
-          },
-        );
-      },
+    return SettingsAcountTile(
+      name: auth.userName,
+      email: auth.user?.email ?? 'Geen e-mail',
+      onTap: () => _showEditProfileDialog(auth.userName, auth.user!.uid),
     );
   }
 
@@ -264,6 +245,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = Provider.of<AuthProvider>(context);
+
     return CupertinoPageScaffold(
       backgroundColor: CupertinoColors.systemGroupedBackground,
       child: ListView(
@@ -284,13 +267,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             iconColor: CupertinoColors.systemBlue,
             value: _remindersEnabled,
             onChanged: (bool newValue) async {
-              final currentUid = FirebaseAuth.instance.currentUser?.uid;
-              if (currentUid == null) return;
-
+              if (auth.user == null) return;
               setState(() => _remindersEnabled = newValue);
-              await _firestoreService.updateNotificationSettings(currentUid, {
-                'remindersEnabled': newValue,
-              });
+              await _firestoreService.updateNotificationSettings(
+                auth.user!.uid,
+                {'remindersEnabled': newValue},
+              );
               await _syncNotifications();
             },
           ),
@@ -303,13 +285,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             iconColor: CupertinoColors.systemBlue,
             value: _soundsEnabled,
             onChanged: (bool newValue) async {
-              final currentUid = FirebaseAuth.instance.currentUser?.uid;
-              if (currentUid == null) return;
+              if (auth.user == null) return;
 
               setState(() => _soundsEnabled = newValue);
-              await _firestoreService.updateNotificationSettings(currentUid, {
-                'soundsEnabled': newValue,
-              });
+              await _firestoreService.updateNotificationSettings(
+                auth.user!.uid,
+                {'soundsEnabled': newValue},
+              );
               await _syncNotifications();
             },
           ),
@@ -389,9 +371,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
 
-          _buildAccountTile(),
+          _buildAccountTile(auth),
 
-          if (FirebaseAuth.instance.currentUser != null)
+          if (auth.isLoggedIn)
             CupertinoListSection.insetGrouped(
               children: [
                 CupertinoListTile(
@@ -404,9 +386,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     color: CupertinoColors.destructiveRed,
                   ),
                   onTap: () async {
-                    print("Uitloggen...");
-                    await FirebaseAuth.instance.signOut();
-
+                    await auth.signOut(); // Gebruik de Provider actie!
                     if (mounted) {
                       Navigator.of(context).popUntil((route) => route.isFirst);
                     }
@@ -421,8 +401,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     CupertinoIcons.trash,
                     color: CupertinoColors.destructiveRed,
                   ),
-                  onTap: () =>
-                      _showDeleteAccountDialog(),
+                  onTap: () => _showDeleteAccountDialog(),
                 ),
               ],
             ),

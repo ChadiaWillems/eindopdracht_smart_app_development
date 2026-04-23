@@ -1,7 +1,9 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/cupertino.dart';
 import 'package:medscan/services/firestore_service.dart';
 import 'package:medscan/widgets/generic/generic_button.dart';
+import 'package:provider/provider.dart';
+import 'package:medscan/providers/auth_provider.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -26,43 +28,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isLoading = false;
 
   Future<void> _handleRegister() async {
+    // 1. Gebruik je al bestaande validatie check
     if (!_validateFields()) return;
-
-    if (_nameController.text.isEmpty &&
-        _emailController.text.isEmpty &&
-        _passwordController.text.isEmpty &&
-        _confirmPasswordController.text.isEmpty) {
-      _showError("Vul alstublieft alle velden in.");
-      return;
-    } else if (_passwordController.text != _confirmPasswordController.text) {
-      _showError("Wachtwoorden komen niet overeen.");
-      return;
-    }
 
     setState(() => _isLoading = true);
 
     try {
-      UserCredential userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-            email: _emailController.text.trim(),
-            password: _passwordController.text.trim(),
-          );
+      // 2. Roep de provider aan
+      await Provider.of<AuthProvider>(context, listen: false).signUp(
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
+        _nameController.text.trim(),
+      );
 
-      if (userCredential.user != null) {
-        await _firestoreService.createUserProfile(
-          userCredential.user!.uid,
-          _nameController.text.trim(),
-          _emailController.text.trim(),
-        );
-      }
-
-      print("Registratie succesvol: ${userCredential.user?.email}");
+      print("Registratie succesvol!");
 
       if (mounted) {
-        Navigator.pop(context);
+        Navigator.pop(context); // Terug naar login of home
       }
     } on FirebaseAuthException catch (e) {
-      _showError(e.message ?? "Er is iets misgegaan.");
+      String errorMsg = "Er is iets misgegaan.";
+      if (e.code == 'email-already-in-use')
+        errorMsg = "Dit e-mailadres is al in gebruik.";
+      if (e.code == 'weak-password') errorMsg = "Het wachtwoord is te zwak.";
+
+      _showError(errorMsg);
     } catch (e) {
       _showError("Fout: $e");
     } finally {

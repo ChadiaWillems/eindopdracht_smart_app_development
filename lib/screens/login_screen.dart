@@ -1,7 +1,9 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/cupertino.dart';
 import 'package:medscan/screens/register_screen.dart';
 import 'package:medscan/widgets/generic/generic_button.dart';
+import 'package:provider/provider.dart';
+import 'package:medscan/providers/auth_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -28,26 +30,20 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
+      await Provider.of<AuthProvider>(
+        context,
+        listen: false,
+      ).signIn(_emailController.text.trim(), _passwordController.text.trim());
 
       if (mounted) {
         Navigator.pop(context);
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
-        if (e.code == 'user-not-found') {
-          _errorMessage = "Dit e-mailadres is niet bekend.";
-        }
-        else if (e.code == 'wrong-password') {
-          _errorMessage = "Het wachtwoord is onjuist.";
-        }
-        else if (e.code == 'invalid-credential') {
+        if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
           _errorMessage = "E-mailadres of wachtwoord is onjuist.";
-        } else if (e.code == 'invalid-email') {
-          _errorMessage = "Dit is geen geldig e-mailadres.";
+        } else if (e.code == 'wrong-password') {
+          _errorMessage = "Het wachtwoord is onjuist.";
         } else {
           _errorMessage = "Inloggen mislukt: ${e.message}";
         }
