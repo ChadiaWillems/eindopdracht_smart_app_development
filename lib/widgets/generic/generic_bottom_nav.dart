@@ -16,7 +16,6 @@ class _GenericBottomNavState extends State<GenericBottomNav> {
   @override
   void initState() {
     super.initState();
-    // LUISTEREN: Zodra de login-status verandert, teken de hele bar + schermen opnieuw
     FirebaseAuth.instance.authStateChanges().listen((User? user) {
       if (mounted) {
         setState(() {});
@@ -46,12 +45,11 @@ class _GenericBottomNavState extends State<GenericBottomNav> {
         ],
       ),
       tabBuilder: (context, index) {
-        // Gebruik CupertinoTabView zodat elke tab zijn eigen "stapel" heeft
         return CupertinoTabView(
           builder: (context) {
             switch (index) {
               case 0:
-                return const HomeScreen(); // De TabBar blijft hieronder staan
+                return const HomeScreen(); 
               case 1:
                 return user == null
                     ? const LoginScreen()

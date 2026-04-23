@@ -32,7 +32,6 @@ class ScheduleMedicineCard extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Bovenste gedeelte
           CupertinoListTile(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             title: Text(
@@ -62,14 +61,12 @@ class ScheduleMedicineCard extends StatelessWidget {
             onTap: onToggleTaken,
           ),
 
-          // De Cupertino variant van de Divider
           Container(
             height: 1,
             margin: const EdgeInsets.symmetric(horizontal: 16),
             color: CupertinoColors.systemGrey6,
           ),
 
-          // De "Mark as taken" knop (volledig Cupertino)
           Container(
             width: double.infinity,
             child: CupertinoButton(

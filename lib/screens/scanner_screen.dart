@@ -18,38 +18,60 @@ class _ScannerScreenState extends State<ScannerScreen> {
   final TextRecognizer _textRecognizer = TextRecognizer();
   bool _isProcessing = false;
   bool _hasFoundMatch = false;
+  bool _isDataLoaded = false;
 
   final FirestoreService _firestoreService = FirestoreService();
-
-  // We slaan zowel de zoeknaam (kleine letters) als de echte naam (voor Firestore) op
   List<Map<String, String>> _medicineDataFromDB = [];
 
   @override
   void initState() {
     super.initState();
-    _fetchMedicines(); // Eerst data ophalen
-    _initializeCamera(); // Dan camera starten
+    print("DEBUG: ScannerScreen is opgestart!");
+    _fetchMedicines();
   }
 
   Future<void> _fetchMedicines() async {
-    _firestoreService.getMedicines().listen((snapshot) {
-      if (mounted) {
-        setState(() {
-          _medicineDataFromDB = snapshot.docs.map((doc) {
-            return {
-              'searchName': doc.data()['name'].toString().toLowerCase(),
-              'realName': doc
-                  .id, // De ID is de naam met hoofdletters (bijv. "Amoxicilline")
-            };
-          }).toList();
-        });
-      }
-      print("Database geladen: ${_medicineDataFromDB.length} medicijnen");
-    });
+    print("Start met ophalen medicijnen uit Firestore..."); // Log 1
+
+    _firestoreService.getMedicines().listen(
+      (snapshot) {
+        print(
+          "Snapshot ontvangen! Aantal documenten: ${snapshot.docs.length}",
+        ); // Log 2
+
+        if (mounted) {
+          setState(() {
+            _medicineDataFromDB = snapshot.docs.map((doc) {
+              print("Medicijn in DB gevonden: ${doc.data()['name']}");
+
+              return {
+                'searchName': doc
+                    .data()['name']
+                    .toString()
+                    .toLowerCase()
+                    .trim(),
+                'realName': doc.id,
+              };
+            }).toList();
+            _isDataLoaded = true;
+          });
+          if (_controller == null) {
+            _initializeCamera();
+          }
+        }
+      },
+      onError: (error) {
+        print(
+          "FIRESTORE FOUT: $error",
+        );
+      },
+    );
   }
 
   Future<void> _initializeCamera() async {
     final cameras = await availableCameras();
+    if (cameras.isEmpty) return;
+
     final backCamera = cameras.firstWhere(
       (c) => c.lensDirection == CameraLensDirection.back,
     );
@@ -58,17 +80,22 @@ class _ScannerScreenState extends State<ScannerScreen> {
       backCamera,
       ResolutionPreset.medium,
       enableAudio: false,
+      imageFormatGroup: ImageFormatGroup.bgra8888,
     );
-    await _controller!.initialize();
 
-    _controller!.startImageStream((CameraImage image) {
-      if (!_isProcessing) {
-        _isProcessing = true;
-        _processImage(image);
-      }
-    });
-
-    if (mounted) setState(() {});
+    try {
+      await _controller!.initialize();
+      _controller!.startImageStream((CameraImage image) {
+        if (!_isProcessing) {
+          _isProcessing = true;
+          _processImage(image);
+        }
+      });
+      setState(() {});
+    } catch (e) {
+      print("Fout bij initialiseren camera: $e");
+      return;
+    }
   }
 
   Future<void> _processImage(CameraImage image) async {
@@ -108,7 +135,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
       String matchedRealName = "";
       bool foundMatch = false;
 
-      // Check of een van de namen uit de DB voorkomt in de gescande tekst
       for (var med in _medicineDataFromDB) {
         String searchName = med['searchName']!;
         if (searchName.length > 3 && gescandeTekst.contains(searchName)) {
@@ -149,24 +175,92 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_controller == null || !_controller!.value.isInitialized) {
+    if (_controller == null ||
+        !_controller!.value.isInitialized ||
+        !_isDataLoaded) {
       return const CupertinoPageScaffold(
         child: Center(child: CupertinoActivityIndicator()),
       );
     }
+
+    final size = MediaQuery.of(context).size;
+
     return CupertinoPageScaffold(
-      navigationBar: const CupertinoNavigationBar(middle: Text('Scan Strip')),
+      backgroundColor: CupertinoColors.black,
+      navigationBar: const CupertinoNavigationBar(
+        middle: Text(
+          'Scan Strip',
+          style: TextStyle(color: CupertinoColors.white),
+        ),
+        backgroundColor: Color(0x00000000),
+        border: null,
+      ),
       child: Stack(
+        fit: StackFit.expand,
         children: [
-          CameraPreview(_controller!),
+          FittedBox(
+            fit: BoxFit.cover,
+            child: SizedBox(
+              width: _controller!.value.previewSize!.height,
+              height: _controller!.value.previewSize!.width,
+              child: CameraPreview(_controller!),
+            ),
+          ),
+
+
+          ColorFiltered(
+            colorFilter: ColorFilter.mode(
+              CupertinoColors.black.withOpacity(0.5),
+              BlendMode.srcOut,
+            ),
+            child: Stack(
+              children: [
+                Container(
+                  decoration: const BoxDecoration(
+                    color: CupertinoColors.black,
+                    backgroundBlendMode: BlendMode.dstOut,
+                  ),
+                ),
+                Center(
+                  child: Container(
+                    width: 250,
+                    height: 150,
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           Center(
-            child: Container(
-              width: 250,
-              height: 150,
-              decoration: BoxDecoration(
-                border: Border.all(color: CupertinoColors.white, width: 2),
-                borderRadius: BorderRadius.circular(12),
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 250, 
+                  height: 170,
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.black.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'Lijn de naam uit in het kader',
+                    style: TextStyle(
+                      color: CupertinoColors.white,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

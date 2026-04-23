@@ -25,7 +25,7 @@ class MedicineScreen extends StatelessWidget {
         medicineData: data,
       );
 
-      // Toon een bevestiging aan de gebruiker
+  
       if (context.mounted) {
         showCupertinoDialog(
           context: context,
@@ -40,8 +40,8 @@ class MedicineScreen extends StatelessWidget {
               CupertinoDialogAction(
                 child: const Text('Bekijk schema'),
                 onPressed: () {
-                  Navigator.pop(context); // Sluit de popup
-                  Navigator.pop(context); // Ga terug uit het detail scherm
+                  Navigator.pop(context); 
+                  Navigator.pop(context); 
                   Navigator.of(context).push(
                     CupertinoPageRoute(
                       builder: (context) => const ScheduleScreen(),
@@ -54,7 +54,6 @@ class MedicineScreen extends StatelessWidget {
         );
       }
     } catch (e) {
-      // Toon foutmelding als het misgaat
       if (context.mounted) {
         showCupertinoDialog(
           context: context,
@@ -98,10 +97,6 @@ class MedicineScreen extends StatelessWidget {
               );
 
               final user = FirebaseAuth.instance.currentUser;
-              // if (user != null && mounted) {
-              //   // De gebruiker is nu ingelogd! Voer direct de opslag-functie uit.
-              //   _handleSaveToSchedule();
-              // }
             },
           ),
         ],
@@ -134,7 +129,7 @@ class MedicineScreen extends StatelessWidget {
                   final List warnings = data['warnings'] ?? [];
 
                   return ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 200),
                     children: [
                       MedicineHeader(
                         medicineName: medicineName,
@@ -184,9 +179,8 @@ class MedicineScreen extends StatelessWidget {
             right: 0,
             child: Container(
               padding: const EdgeInsets.all(16),
-              // We voegen een witte achtergrond met een lichte schaduw toe zodat de knoppen goed opvallen
               decoration: BoxDecoration(
-                color: CupertinoColors.systemBackground.withOpacity(0.9),
+                color: CupertinoColors.systemBackground,
                 border: const Border(
                   top: BorderSide(
                     color: CupertinoColors.systemGrey5,
@@ -199,7 +193,6 @@ class MedicineScreen extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // 1. De Opslaan Knop (met de StreamBuilder die we net maakten)
                     StreamBuilder<User?>(
                       stream: FirebaseAuth.instance.authStateChanges(),
                       builder: (context, snapshot) {
@@ -223,9 +216,7 @@ class MedicineScreen extends StatelessWidget {
                         );
                       },
                     ),
-
-                    const SizedBox(height: 8), // Wat ruimte tussen de knoppen
-                    // 2. De Annuleren Knop
+                    const SizedBox(height: 8),
                     CupertinoButton(
                       padding: EdgeInsets.zero,
                       child: const Text(
@@ -236,12 +227,9 @@ class MedicineScreen extends StatelessWidget {
                         ),
                       ),
                       onPressed: () {
-                        // Dit brengt de gebruiker direct terug naar de HomeScreen/Scanner
-                        Navigator.of(context).push(
-                          CupertinoPageRoute(
-                            builder: (context) => const HomeScreen(),
-                          ),
-                        );
+                        Navigator.of(
+                          context,
+                        ).popUntil((route) => route.isFirst);
                       },
                     ),
                   ],

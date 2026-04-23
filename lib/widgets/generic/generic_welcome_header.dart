@@ -31,7 +31,7 @@ class GenericWelcomeHeader extends StatelessWidget
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // --- HIER KOMT JOUW LOGICA ---
+
             StreamBuilder<User?>(
               stream: FirebaseAuth.instance.authStateChanges(),
               builder: (context, authSnapshot) {
@@ -59,7 +59,7 @@ class GenericWelcomeHeader extends StatelessWidget
               },
             ),
 
-            // --- EINDE LOGICA ---
+
             Text(
               subtitle,
               style: const TextStyle(
@@ -74,7 +74,6 @@ class GenericWelcomeHeader extends StatelessWidget
     );
   }
 
-  // Klein hulpje voor de styling van de titel
   Widget _buildTitle(String text) {
     return Text(
       text,

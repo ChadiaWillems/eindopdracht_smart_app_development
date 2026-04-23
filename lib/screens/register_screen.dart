@@ -17,10 +17,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _confirmPasswordController =
       TextEditingController();
 
+  String? _nameError;
+  String? _emailError;
+  String? _passwordError;
+  String? _confirmPasswordError;
+
   final FirestoreService _firestoreService = FirestoreService();
   bool _isLoading = false;
 
   Future<void> _handleRegister() async {
+    if (!_validateFields()) return;
+
     if (_nameController.text.isEmpty &&
         _emailController.text.isEmpty &&
         _passwordController.text.isEmpty &&
@@ -35,14 +42,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Maak de gebruiker aan in Firebase Authentication
       UserCredential userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
             email: _emailController.text.trim(),
             password: _passwordController.text.trim(),
           );
 
-      // Maak het profiel aan in de 'users' collectie in Firestore
       if (userCredential.user != null) {
         await _firestoreService.createUserProfile(
           userCredential.user!.uid,
@@ -65,6 +70,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  bool _validateFields() {
+    setState(() {
+      _nameError = _nameController.text.isEmpty ? "Naam is verplicht" : null;
+      _emailError = !_emailController.text.contains('@')
+          ? "Voer een geldig e-mailadres in. Moet een '@' bevatten."
+          : null;
+      _passwordError = _passwordController.text.length < 6
+          ? "Minimaal 6 tekens"
+          : null;
+      _confirmPasswordError =
+          _passwordController.text != _confirmPasswordController.text
+          ? "Wachtwoorden komen niet overeen"
+          : null;
+    });
+
+    return _nameError == null &&
+        _emailError == null &&
+        _passwordError == null &&
+        _confirmPasswordError == null;
+  }
+
   void _showError(String message) {
     showCupertinoDialog(
       context: context,
@@ -81,89 +107,129 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  Widget _buildErrorText(String? error) {
+    if (error == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, left: 4),
+      child: Text(
+        error,
+        style: const TextStyle(
+          color: CupertinoColors.destructiveRed,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
       navigationBar: const CupertinoNavigationBar(
         middle: Text('Account aanmaken'),
       ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const SizedBox(height: 20),
-              const Text("Naam", style: TextStyle(fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
-              CupertinoTextField(
-                controller: _nameController,
-                placeholder: 'Bijv. Jan Janssen',
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: CupertinoColors.systemGrey6,
-                  borderRadius: BorderRadius.circular(8),
+      child: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20.0,
+              vertical: 10.0,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 10),
+                const Text(
+                  "Naam",
+                  style: TextStyle(fontWeight: FontWeight.w600),
                 ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                "E-mail",
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              CupertinoTextField(
-                controller: _emailController,
-                placeholder: 'jouw@email.com',
-                keyboardType: TextInputType.emailAddress,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: CupertinoColors.systemGrey6,
-                  borderRadius: BorderRadius.circular(8),
+                const SizedBox(height: 8),
+                CupertinoTextField(
+                  controller: _nameController,
+                  placeholder: 'Bijv. Jan Janssen',
+                  padding: const EdgeInsets.all(12),
+                  textCapitalization: TextCapitalization.words,
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.systemGrey6,
+                    borderRadius: BorderRadius.circular(8),
+                    border: _nameError != null
+                        ? Border.all(color: CupertinoColors.destructiveRed)
+                        : null,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                "Wachtwoord",
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              CupertinoTextField(
-                controller: _passwordController,
-                placeholder: 'Minimaal 6 tekens',
-                obscureText: true,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: CupertinoColors.systemGrey6,
-                  borderRadius: BorderRadius.circular(8),
+                _buildErrorText(_nameError),
+                const SizedBox(height: 20),
+                const Text(
+                  "E-mail",
+                  style: TextStyle(fontWeight: FontWeight.w600),
                 ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                "Bevestig wachtwoord",
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              CupertinoTextField(
-                controller: _confirmPasswordController,
-                placeholder: 'Bevestig je wachtwoord',
-                obscureText: true,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: CupertinoColors.systemGrey6,
-                  borderRadius: BorderRadius.circular(8),
+                const SizedBox(height: 8),
+                CupertinoTextField(
+                  controller: _emailController,
+                  placeholder: 'jouw@email.com',
+                  keyboardType: TextInputType.emailAddress,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.systemGrey6,
+                    borderRadius: BorderRadius.circular(8),
+                    border: _emailError != null
+                        ? Border.all(color: CupertinoColors.destructiveRed)
+                        : null,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 40),
-              Center(
-                child: _isLoading
-                    ? const Center(child: CupertinoActivityIndicator())
-                    : GenericButton(
-                        label: 'Registreren',
-                        onPressed: _handleRegister,
-                      ),
-              ),
-            ],
+                _buildErrorText(_emailError),
+                const SizedBox(height: 20),
+                const Text(
+                  "Wachtwoord",
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                CupertinoTextField(
+                  controller: _passwordController,
+                  placeholder: 'Minimaal 6 tekens',
+                  obscureText: true,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.systemGrey6,
+                    borderRadius: BorderRadius.circular(8),
+                    border: _passwordError != null
+                        ? Border.all(color: CupertinoColors.destructiveRed)
+                        : null,
+                  ),
+                ),
+                _buildErrorText(_passwordError),
+                const SizedBox(height: 20),
+                const Text(
+                  "Bevestig wachtwoord",
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                CupertinoTextField(
+                  controller: _confirmPasswordController,
+                  placeholder: 'Bevestig je wachtwoord',
+                  obscureText: true,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.systemGrey6,
+                    borderRadius: BorderRadius.circular(8),
+                    border: _confirmPasswordError != null
+                        ? Border.all(color: CupertinoColors.destructiveRed)
+                        : null,
+                  ),
+                ),
+                _buildErrorText(_confirmPasswordError),
+                const SizedBox(height: 40),
+                Center(
+                  child: _isLoading
+                      ? const CupertinoActivityIndicator()
+                      : GenericButton(
+                          label: 'Registreren',
+                          onPressed: _handleRegister,
+                        ),
+                ),
+                const SizedBox(height: 40),
+              ],
+            ),
           ),
         ),
       ),

@@ -8,7 +8,6 @@ import 'package:medscan/widgets/settings/settings_acount_tile.dart';
 import 'package:medscan/widgets/settings/settings_switch_tile.dart';
 import 'package:medscan/widgets/settings/settings_time_tile.dart';
 import 'package:medscan/services/notification_service.dart';
-
 import '../widgets/settings/settings_switch_tile.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -20,9 +19,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final FirestoreService _firestoreService = FirestoreService();
-  final NotificationService _notificationService =
-      NotificationService(); // NIEUW
-  final String uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+  final NotificationService _notificationService = NotificationService();
 
   bool _remindersEnabled = false;
   bool _soundsEnabled = true;
@@ -34,13 +31,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    // Gebruik WidgetsBinding om te wachten tot het scherm er staat
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _bootstrapServices();
     });
   }
 
-  // Een aparte functie die alles achter elkaar uitvoert
   Future<void> _bootstrapServices() async {
     try {
       print("Stap 1: Notificaties opstarten...");
@@ -55,7 +50,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // NIEUW: Functie om de lokale notificaties te synchroniseren met je instellingen
   Future<void> _syncNotifications() async {
     if (!_remindersEnabled) {
       await _notificationService.cancelAll();
@@ -63,7 +57,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
     await _notificationService
-        .cancelAll(); // Eerst schoonvegen om dubbelingen te voorkomen
+        .cancelAll();
 
     await _notificationService.scheduleDailyNotification(
       id: 1,
@@ -86,8 +80,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _loadSettings() async {
-    if (uid.isEmpty) return;
-    final snapshot = await _firestoreService.getNotificationSettings(uid);
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final snapshot = await _firestoreService.getNotificationSettings(user.uid);
     if (snapshot.exists) {
       final data = snapshot.data();
       setState(() {
@@ -97,7 +92,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _afternoonTime = data?['afternoonTime'] ?? "13:00";
         _eveningTime = data?['eveningTime'] ?? "19:00";
       });
-      _syncNotifications(); // NIEUW: Na het laden direct inplannen
+      _syncNotifications();
     }
   }
 
@@ -111,15 +106,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         millisecond: 0,
       );
     } catch (e) {
-      // Fallback naar 08:00 als de string corrupt is
       return DateTime.now().copyWith(hour: 8, minute: 0);
     }
   }
 
-  // Voeg 'String currentName' toe als parameter
-  void _showEditProfileDialog(String currentName) {
+  void _showEditProfileDialog(String currentName, String currentUid) {
     final TextEditingController nameController = TextEditingController(
-      // Als de naam 'Laden...' is, tonen we een lege string, anders de echte naam
       text: currentName == 'Laden...' ? "" : currentName,
     );
 
@@ -133,7 +125,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             controller: nameController,
             placeholder: "Je naam",
             textCapitalization: TextCapitalization.words,
-            autofocus: true, // Zorgt dat het toetsenbord direct opent
+            autofocus: true,
           ),
         ),
         actions: [
@@ -146,10 +138,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: const Text("Opslaan"),
             onPressed: () async {
               if (nameController.text.trim().isNotEmpty) {
-                await _firestoreService.updateUserProfile(uid, {
+                await _firestoreService.updateUserProfile(currentUid, {
                   'name': nameController.text.trim(),
                 });
-                setState(() {}); // Hiermee ververs je de FutureBuilder
+                setState(() {});
                 Navigator.pop(context);
               }
             },
@@ -160,34 +152,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildAccountTile() {
-    final user = FirebaseAuth.instance.currentUser;
-
-    if (user == null) {
-      return SettingsAcountTile(
-        name: 'Gast',
-        email: 'Tik om in te loggen',
-        onTap: () {
-          Navigator.of(
-            context,
-          ).push(CupertinoPageRoute(builder: (context) => const LoginScreen()));
-        },
-      );
-    }
-
-    return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-      future: _firestoreService.getUserProfile(user.uid),
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        String name = 'Laden...';
-        String email = user.email ?? 'Geen e-mail';
+        final user = snapshot.data;
 
-        if (snapshot.hasData && snapshot.data!.exists) {
-          final data = snapshot.data!.data();
-          name = data?['name'] ?? 'Gebruiker';
+        if (user == null) {
+          return SettingsAcountTile(
+            name: 'Gast',
+            email: 'Tik om in te loggen',
+            onTap: () {
+              Navigator.of(context).push(
+                CupertinoPageRoute(builder: (context) => const LoginScreen()),
+              );
+            },
+          );
         }
-        return SettingsAcountTile(
-          name: name,
-          email: email,
-          onTap: () => _showEditProfileDialog(name),
+
+        return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+          future: _firestoreService.getUserProfile(user.uid),
+          builder: (context, profileSnapshot) {
+            String name = 'Laden...';
+            String email = user.email ?? 'Geen e-mail';
+
+            if (profileSnapshot.hasData && profileSnapshot.data!.exists) {
+              final data = profileSnapshot.data!.data();
+              name = data?['name'] ?? 'Gebruiker';
+            }
+            return SettingsAcountTile(
+              name: name,
+              email: email,
+              onTap: () =>
+                  _showEditProfileDialog(name, user.uid),
+            );
+          },
         );
       },
     );
@@ -198,16 +196,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (user == null) return;
 
     try {
-      // 1. Stop alle meldingen op de iPhone
       await _notificationService.cancelAll();
 
-      // 2. Verwijder de data uit Firestore
       await _firestoreService.deleteUserProfile(user.uid);
 
-      // 3. Verwijder de gebruiker uit Firebase Auth
       await user.delete();
 
-      // 4. Stuur terug naar login scherm en wis de navigatie geschiedenis
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           CupertinoPageRoute(builder: (context) => const LoginScreen()),
@@ -227,7 +221,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // Hulpfunctie voor foutmeldingen
   void _showErrorAlert(String message) {
     showCupertinoDialog(
       context: context,
@@ -258,7 +251,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () => Navigator.pop(context),
           ),
           CupertinoDialogAction(
-            isDestructiveAction: true, // Maakt de tekst rood
+            isDestructiveAction: true,
             child: const Text("Verwijder account"),
             onPressed: () async {
               await _deleteUserAccount();
@@ -282,16 +275,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ),
+
           // --- Switch: Herinneringen ---
           SettingsSwitchTile(
             title: "Herinneringen",
-            subtitle: "Krijg herinneringen voor medicijnen", // Toegevoegd
-            icon: CupertinoIcons.bell_fill, // Toegevoegd
-            iconColor: CupertinoColors.systemBlue, // Toegevoegd
+            subtitle: "Krijg herinneringen voor medicijnen",
+            icon: CupertinoIcons.bell_fill,
+            iconColor: CupertinoColors.systemBlue,
             value: _remindersEnabled,
             onChanged: (bool newValue) async {
+              final currentUid = FirebaseAuth.instance.currentUser?.uid;
+              if (currentUid == null) return;
+
               setState(() => _remindersEnabled = newValue);
-              await _firestoreService.updateNotificationSettings(uid, {
+              await _firestoreService.updateNotificationSettings(currentUid, {
                 'remindersEnabled': newValue,
               });
               await _syncNotifications();
@@ -306,8 +303,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             iconColor: CupertinoColors.systemBlue,
             value: _soundsEnabled,
             onChanged: (bool newValue) async {
+              final currentUid = FirebaseAuth.instance.currentUser?.uid;
+              if (currentUid == null) return;
+
               setState(() => _soundsEnabled = newValue);
-              await _firestoreService.updateNotificationSettings(uid, {
+              await _firestoreService.updateNotificationSettings(currentUid, {
                 'soundsEnabled': newValue,
               });
               await _syncNotifications();
@@ -325,14 +325,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // --- Tijd: Ochtend ---
           SettingsTimeTile(
             title: 'Ochtend dosis',
-            icon: CupertinoIcons.sun_dust_fill, // Toegevoegd
-            iconColor: CupertinoColors.systemOrange, // Toegevoegd
+            icon: CupertinoIcons.sun_dust_fill,
+            iconColor: CupertinoColors.systemOrange,
             time: _parseTimeString(_morningTime),
             onTimeChanged: (DateTime newTime) async {
+              final currentUid = FirebaseAuth.instance.currentUser?.uid;
+              if (currentUid == null) return;
               String formatted =
                   "${newTime.hour.toString().padLeft(2, '0')}:${newTime.minute.toString().padLeft(2, '0')}";
               setState(() => _morningTime = formatted);
-              await _firestoreService.updateNotificationSettings(uid, {
+              await _firestoreService.updateNotificationSettings(currentUid, {
                 'morningTime': formatted,
               });
               await _syncNotifications();
@@ -342,14 +344,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // --- Tijd: Middag ---
           SettingsTimeTile(
             title: 'Middag dosis',
-            icon: CupertinoIcons.sun_max_fill, // Toegevoegd
-            iconColor: CupertinoColors.systemYellow, // Toegevoegd
+            icon: CupertinoIcons.sun_max_fill,
+            iconColor: CupertinoColors.systemYellow,
             time: _parseTimeString(_afternoonTime),
             onTimeChanged: (DateTime newTime) async {
+              final currentUid = FirebaseAuth.instance.currentUser?.uid;
+              if (currentUid == null) return;
+
               String formatted =
                   "${newTime.hour.toString().padLeft(2, '0')}:${newTime.minute.toString().padLeft(2, '0')}";
               setState(() => _afternoonTime = formatted);
-              await _firestoreService.updateNotificationSettings(uid, {
+              await _firestoreService.updateNotificationSettings(currentUid, {
                 'afternoonTime': formatted,
               });
               await _syncNotifications();
@@ -359,14 +364,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // --- Tijd: Avond ---
           SettingsTimeTile(
             title: 'Avond dosis',
-            icon: CupertinoIcons.moon_stars_fill, // Toegevoegd
-            iconColor: CupertinoColors.systemIndigo, // Toegevoegd
+            icon: CupertinoIcons.moon_stars_fill,
+            iconColor: CupertinoColors.systemIndigo,
             time: _parseTimeString(_eveningTime),
             onTimeChanged: (DateTime newTime) async {
+              final currentUid = FirebaseAuth.instance.currentUser?.uid;
+              if (currentUid == null) return;
+
               String formatted =
                   "${newTime.hour.toString().padLeft(2, '0')}:${newTime.minute.toString().padLeft(2, '0')}";
               setState(() => _eveningTime = formatted);
-              await _firestoreService.updateNotificationSettings(uid, {
+              await _firestoreService.updateNotificationSettings(currentUid, {
                 'eveningTime': formatted,
               });
               await _syncNotifications();
@@ -396,18 +404,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     color: CupertinoColors.destructiveRed,
                   ),
                   onTap: () async {
+                    print("Uitloggen...");
                     await FirebaseAuth.instance.signOut();
 
                     if (mounted) {
-                      Navigator.of(
-                        context,
-                        rootNavigator: true,
-                      ).pushAndRemoveUntil(
-                        CupertinoPageRoute(
-                          builder: (context) => const HomeScreen(),
-                        ),
-                        (route) => false,
-                      );
+                      Navigator.of(context).popUntil((route) => route.isFirst);
                     }
                   },
                 ),
@@ -421,7 +422,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     color: CupertinoColors.destructiveRed,
                   ),
                   onTap: () =>
-                      _showDeleteAccountDialog(), // We maken deze functie zo
+                      _showDeleteAccountDialog(),
                 ),
               ],
             ),

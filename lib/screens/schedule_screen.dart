@@ -23,7 +23,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   List<DateTime> _generateDisplayDays() {
     DateTime today = DateTime.now();
-    // We maken een lijst van 7 dagen, waarbij vandaag de 4e dag is (index 3)
     return List.generate(7, (index) {
       return today.add(Duration(days: index - 3));
     });
@@ -44,13 +43,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: displayDays.map((date) {
-          // Check of deze datum "vandaag" is
           bool isToday =
               date.day == today.day &&
               date.month == today.month &&
               date.year == today.year;
 
-          // Dag-index (DateTime.weekday geeft 1 voor Maandag t/m 7 voor Zondag)
           String dayLabel = dayNames[date.weekday - 1];
 
           return Column(
@@ -134,7 +131,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       stream: _firestoreService.getScheduleMoment(uid, moment),
       builder: (context, snapshot) {
-        // HIER definiëren we 'items' weer vanuit de database snapshot
         List items = [];
         if (snapshot.hasData && snapshot.data!.exists) {
           items = snapshot.data!.data()?['items'] ?? [];
@@ -144,7 +140,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. LINKERKOLOM: Tijd en Icoon
               SizedBox(
                 width: 50,
                 child: Column(
@@ -162,7 +157,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 ),
               ),
 
-              // 2. MIDDEN: Verticale lijn
+
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
@@ -180,7 +175,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 ),
               ),
 
-              // 3. RECHTERKOLOM: De lijst met swipe-bare kaarten
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 24),
@@ -265,10 +259,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       backgroundColor: const Color(0xFFF9F9F9),
       child: SafeArea(
         child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-          // Direct aanroepen vanuit de service
           stream: _firestoreService.getNotificationSettingsStream(uid),
           builder: (context, settingsSnapshot) {
-            // Fallback tijden als er (nog) geen data is
             String mTime = "08:00";
             String aTime = "13:00";
             String eTime = "19:00";

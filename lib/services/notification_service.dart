@@ -11,19 +11,17 @@ class NotificationService {
     tz.initializeTimeZones();
 
     try {
-      // We halen de ruwe tekst op (bijv: "TimezoneInfo(Europe/Brussels, ...)")
       final String rawInfo = (await FlutterTimezone.getLocalTimezone())
           .toString();
 
-      // We knippen alles tussen de haakjes uit om "Europe/Brussels" te krijgen
-      // We splitsen op '(' en pakken het tweede deel, dan splitsen we op ',' en pakken het eerste deel
+      
       final String timeZoneName = rawInfo.split('(')[1].split(',')[0].trim();
 
       tz.setLocalLocation(tz.getLocation(timeZoneName));
       print("Tijdzone succesvol ingesteld op: $timeZoneName");
     } catch (e) {
       print("Fout bij parsing, gebruik fallback: $e");
-      // De allerbeste fallback voor jou:
+
       tz.setLocalLocation(tz.getLocation('Europe/Brussels'));
     }
 
@@ -42,7 +40,7 @@ class NotificationService {
       const InitializationSettings(android: androidSettings, iOS: iosSettings),
     );
 
-    // Handmatig toestemming vragen voor iOS
+  
     await _notifications
         .resolvePlatformSpecificImplementation<
           IOSFlutterLocalNotificationsPlugin
@@ -70,7 +68,7 @@ class NotificationService {
       minute,
     );
 
-    // Als de tijd vandaag al is geweest, plan hem in voor morgen
+
     if (scheduledDate.isBefore(now)) {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
@@ -82,11 +80,11 @@ class NotificationService {
       scheduledDate,
       const NotificationDetails(
         iOS: DarwinNotificationDetails(
-          presentAlert: true, // Banner in voorgrond
-          presentSound: true, // Geluid in voorgrond
-          presentBadge: true, // Badge in voorgrond
+          presentAlert: true, 
+          presentSound: true, 
+          presentBadge: true,
           interruptionLevel:
-              InterruptionLevel.active, // Zorgt voor directe pop-up
+              InterruptionLevel.active, 
         ),
         android: AndroidNotificationDetails(
           'med_reminders',
@@ -102,7 +100,7 @@ class NotificationService {
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
     );
 
-    print("Melding '$title' gepland voor: $scheduledDate"); // Debug check
+    print("Melding '$title' gepland voor: $scheduledDate"); 
   }
 
   Future<void> cancelAll() async => await _notifications.cancelAll();
