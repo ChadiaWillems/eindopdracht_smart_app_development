@@ -50,49 +50,51 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
           String dayLabel = dayNames[date.weekday - 1];
 
-          return Column(
-            children: [
-              Text(
-                dayLabel,
-                style: TextStyle(
-                  color: isToday
-                      ? CupertinoColors.black
-                      : CupertinoColors.systemGrey,
-                  fontSize: 12,
-                  fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: isToday
-                      ? CupertinoColors.activeBlue.withOpacity(0.1)
-                      : CupertinoColors.transparent,
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  '${date.day}',
+          return Expanded(
+            child: Column(
+              children: [
+                Text(
+                  dayLabel,
                   style: TextStyle(
                     color: isToday
-                        ? CupertinoColors.activeBlue
-                        : CupertinoColors.black,
+                        ? CupertinoColors.black
+                        : CupertinoColors.systemGrey,
+                    fontSize: 12,
                     fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-                    fontSize: 16,
                   ),
                 ),
-              ),
-              if (isToday)
+                const SizedBox(height: 8),
                 Container(
-                  margin: const EdgeInsets.only(top: 4),
-                  width: 4,
-                  height: 4,
-                  decoration: const BoxDecoration(
-                    color: CupertinoColors.activeBlue,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isToday
+                        ? CupertinoColors.activeBlue.withOpacity(0.1)
+                        : CupertinoColors.transparent,
                     shape: BoxShape.circle,
                   ),
+                  child: Text(
+                    '${date.day}',
+                    style: TextStyle(
+                      color: isToday
+                          ? CupertinoColors.activeBlue
+                          : CupertinoColors.black,
+                      fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
-            ],
+                if (isToday)
+                  Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    width: 4,
+                    height: 4,
+                    decoration: const BoxDecoration(
+                      color: CupertinoColors.activeBlue,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+              ],
+            ),
           );
         }).toList(),
       ),
@@ -128,6 +130,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     IconData icon,
     bool isLastSection,
   ) {
+    final double timeWidth = MediaQuery.of(context).size.width * 0.15;
+
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       stream: _firestoreService.getScheduleMoment(uid, moment),
       builder: (context, snapshot) {
@@ -141,7 +145,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(
-                width: 50,
+                width: timeWidth,
                 child: Column(
                   children: [
                     Icon(icon, size: 24),
@@ -156,7 +160,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   ],
                 ),
               ),
-
 
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -180,15 +183,29 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   padding: const EdgeInsets.only(bottom: 24),
                   child: items.isEmpty
                       ? Container(
-                          constraints: const BoxConstraints(minHeight: 80),
+                          padding: const EdgeInsets.symmetric(vertical: 20),
                           alignment: Alignment.centerLeft,
-                          child: const Text(
-                            "Geen medicatie",
-                            style: TextStyle(
-                              color: CupertinoColors.systemGrey,
-                              fontSize: 13,
-                              fontStyle: FontStyle.italic,
-                            ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment
+                                .start,
+                            children: [
+                              Icon(
+                                CupertinoIcons.info,
+                                size: 16,
+                                color: CupertinoColors.systemGrey2,
+                              ),
+                              const SizedBox(width: 8),
+                              const Expanded(
+                                child: Text(
+                                  "Nog geen medicijnen gepland voor dit moment.",
+                                  style: TextStyle(
+                                    color: CupertinoColors.systemGrey,
+                                    fontSize: 13,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         )
                       : Column(
@@ -220,7 +237,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                                   );
                                 },
                                 onDismissed: (direction) {
-                                  // Nu is 'items' hier ook bekend!
                                   _firestoreService.removeMedicineFromSchedule(
                                     uid,
                                     moment,

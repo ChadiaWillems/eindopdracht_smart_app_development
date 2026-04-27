@@ -19,9 +19,9 @@ class MedicineDosingScheduleCard extends StatelessWidget {
     Color primaryColor = const Color(0xFF1B5AEE);
 
     return Container(
-      width: 115,
-      height: 120,
-      padding: const EdgeInsets.all(16),
+      // We halen de vaste maten weg, maar geven wel een minimum hoogte zodat ze gelijk blijven
+      constraints: const BoxConstraints(minHeight: 110),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
       decoration: BoxDecoration(
         color: isActive
             ? primaryColor.withOpacity(0.05)
@@ -35,24 +35,28 @@ class MedicineDosingScheduleCard extends StatelessWidget {
         ),
       ),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center, // Verticaal centreren
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Color(0xFF1B5AEE)),
-          const SizedBox(height: 8),
+          Icon(icon, color: primaryColor, size: 22),
+          const SizedBox(height: 6),
           Text(
             label,
+            textAlign: TextAlign.center,
             style: const TextStyle(
-              fontSize: 16,
+              fontSize: 13, // Iets kleiner voor betere fit
               color: Color.fromARGB(255, 118, 118, 118),
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
-            '${amount.toString()} pill',
+            '$amount pill',
+            textAlign: TextAlign.center,
             style: const TextStyle(
-              fontSize: 16,
-              color: Colors.black87,
-              fontWeight: FontWeight.w600,
+              fontSize: 15,
+              color: CupertinoColors.black,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],

@@ -12,7 +12,7 @@ class FirestoreService {
   static const String _rootPath = "medscan/59I6fSeQApRy4CpeKLGHGJoR3D23";
 
   Stream<QuerySnapshot<Map<String, dynamic>>> getMedicines() {
-    return _db.collection("$_rootPath/medicines").snapshots();
+    return _db.collection("$_rootPath/medicines").snapshots(includeMetadataChanges: true);
   }
 
   Future<DocumentSnapshot<Map<String, dynamic>>> getMedicineById(String id) {

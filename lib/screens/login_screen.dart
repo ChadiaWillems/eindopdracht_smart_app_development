@@ -16,6 +16,13 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -75,7 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 8),
                 CupertinoTextField(
                   controller: _emailController,
-                  placeholder: 'voorbeeld@mail.com',
+                  placeholder: 'johndoe@gmail.com',
                   keyboardType: TextInputType.emailAddress,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(

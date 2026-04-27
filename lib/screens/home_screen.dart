@@ -5,12 +5,45 @@ import 'package:medscan/widgets/generic/generic_header.dart';
 import 'package:medscan/widgets/generic/generic_welcome_header.dart';
 import 'package:provider/provider.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.08).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
+    _pulseController.repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double buttonSize = screenWidth * 0.55;
+    final double iconSize = buttonSize * 0.33;
+    final double fontSize = buttonSize * 0.085;
 
     return CupertinoPageScaffold(
       navigationBar: const GenericHeader(),
@@ -25,50 +58,67 @@ class HomeScreen extends StatelessWidget {
                   children: [
                     GestureDetector(
                       onTap: () {
-                        print("Knop ingedrukt! Navigeren naar Scanner...");
                         Navigator.of(context).push(
                           CupertinoPageRoute(
                             builder: (context) => const ScannerScreen(),
                           ),
                         );
                       },
-                      child: Container(
-                        width: 210,
-                        height: 210,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: const Color(0xFF1B5AEE),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF1B5AEE).withOpacity(0.4),
-                              blurRadius: 30,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Icon(
-                              CupertinoIcons.camera_fill,
-                              size: 70,
-                              color: CupertinoColors.white,
-                            ),
-                            SizedBox(height: 12),
-                            Text(
-                              'Scan medicijn',
-                              style: TextStyle(
-                                color: CupertinoColors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
+                      child: Semantics(
+                        label: 'Scan medicijn',
+                        button: true,
+                        hint: 'Dubbeltik om de medicijnscanner te openen',
+                        child: ScaleTransition(
+                          scale: _scaleAnimation,
+                          child: Hero(
+                            tag: 'scanner-hero',
+                            child: Container(
+                              width: buttonSize,
+                              height: buttonSize,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: const Color(0xFF1B5AEE),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(
+                                      0xFF1B5AEE,
+                                    ).withOpacity(0.4),
+                                    // De schaduw "ademt" ook mee omdat de hele container schaalt!
+                                    blurRadius: 30,
+                                    offset: Offset(0, buttonSize * 0.15),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    CupertinoIcons.camera_fill,
+                                    size: iconSize,
+                                    color: CupertinoColors.white,
+                                  ),
+                                  SizedBox(height: 12),
+                                  Text(
+                                    'Scan medicijn',
+                                    style: TextStyle(
+                                      color: CupertinoColors.white,
+                                      fontSize: fontSize,
+                                      fontWeight: FontWeight.w600,
+                                      decoration: TextDecoration
+                                          .none, // Voorkomt gele strepen
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
+                          ),
                         ),
                       ),
                     ),
+                    SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.05,
+                    ),
                     Container(
-                      margin: const EdgeInsets.only(top: 40),
                       child: const Text(
                         'Tap om te scannen',
                         style: TextStyle(

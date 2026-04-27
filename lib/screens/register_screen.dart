@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/cupertino.dart';
-import 'package:medscan/services/firestore_service.dart';
 import 'package:medscan/widgets/generic/generic_button.dart';
 import 'package:provider/provider.dart';
 import 'package:medscan/providers/auth_provider.dart';
@@ -19,12 +18,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _confirmPasswordController =
       TextEditingController();
 
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _nameController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
   String? _nameError;
   String? _emailError;
   String? _passwordError;
   String? _confirmPasswordError;
 
-  final FirestoreService _firestoreService = FirestoreService();
   bool _isLoading = false;
 
   Future<void> _handleRegister() async {
@@ -48,8 +55,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
     } on FirebaseAuthException catch (e) {
       String errorMsg = "Er is iets misgegaan.";
+
       if (e.code == 'email-already-in-use')
         errorMsg = "Dit e-mailadres is al in gebruik.";
+
       if (e.code == 'weak-password') errorMsg = "Het wachtwoord is te zwak.";
 
       _showError(errorMsg);
@@ -136,7 +145,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 8),
                 CupertinoTextField(
                   controller: _nameController,
-                  placeholder: 'Bijv. Jan Janssen',
+                  placeholder: 'John Doe',
                   padding: const EdgeInsets.all(12),
                   textCapitalization: TextCapitalization.words,
                   decoration: BoxDecoration(
@@ -156,7 +165,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 8),
                 CupertinoTextField(
                   controller: _emailController,
-                  placeholder: 'jouw@email.com',
+                  placeholder: 'johndoe@gmail.com',
                   keyboardType: TextInputType.emailAddress,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(

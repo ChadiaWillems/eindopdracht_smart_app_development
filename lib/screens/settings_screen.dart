@@ -1,14 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/cupertino.dart';
-import 'package:medscan/screens/home_screen.dart';
 import 'package:medscan/screens/login_screen.dart';
 import 'package:medscan/services/firestore_service.dart';
 import 'package:medscan/widgets/settings/settings_acount_tile.dart';
 import 'package:medscan/widgets/settings/settings_switch_tile.dart';
 import 'package:medscan/widgets/settings/settings_time_tile.dart';
 import 'package:medscan/services/notification_service.dart';
-import '../widgets/settings/settings_switch_tile.dart';
 import 'package:provider/provider.dart';
 import 'package:medscan/providers/auth_provider.dart';
 

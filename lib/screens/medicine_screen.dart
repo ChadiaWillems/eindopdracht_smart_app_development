@@ -1,71 +1,50 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:medscan/screens/home_screen.dart';
 import 'package:medscan/screens/login_screen.dart';
-import 'package:medscan/screens/schedule_screen.dart';
 import 'package:medscan/services/firestore_service.dart';
 import 'package:medscan/widgets/generic/generic_bottom_nav.dart';
-import 'package:medscan/widgets/generic/generic_button.dart';
 import 'package:medscan/widgets/medicine/medicine_dosing_schedule_card.dart';
 import 'package:medscan/widgets/medicine/medicine_header.dart';
 import 'package:medscan/widgets/medicine/medicine_warnings.dart';
 
-class MedicineScreen extends StatelessWidget {
+class MedicineScreen extends StatefulWidget {
   final String medicineName;
 
   const MedicineScreen({super.key, required this.medicineName});
+
+  @override
+  State<MedicineScreen> createState() => _MedicineScreenState();
+}
+
+class _MedicineScreenState extends State<MedicineScreen> {
+  String _buttonStatus = 'idle';
 
   Future<void> _handleSaveToSchedule(
     BuildContext context,
     Map<String, dynamic> data,
   ) async {
+    setState(() => _buttonStatus = 'loading');
+
     try {
+      // We voegen 'await' toe om zeker te weten dat de lokale cache het heeft geaccepteerd
       await FirestoreService().addMedicineToUserSchedule(
-        medicineName: medicineName,
+        medicineName: widget.medicineName,
         medicineData: data,
       );
 
-      if (context.mounted) {
-        showCupertinoDialog(
-          context: context,
-          builder: (context) => CupertinoAlertDialog(
-            title: const Icon(
-              CupertinoIcons.check_mark_circled_solid,
-              color: CupertinoColors.activeGreen,
-              size: 50,
-            ),
-            content: Text('$medicineName is toegevoegd aan je schema!'),
-            actions: [
-              CupertinoDialogAction(
-                child: const Text('Bekijk schema'),
-                onPressed: () {
-                  Navigator.pop(context);
-                  GenericBottomNav.controller.index = 1;
-                  Navigator.of(context).popUntil((route) => route.isFirst);
-                },
-              ),
-            ],
-          ),
-        );
+      setState(() => _buttonStatus = 'success');
+      await Future.delayed(const Duration(milliseconds: 1000));
+
+      if (mounted) {
+        GenericBottomNav.controller.index = 1;
+        Navigator.of(context).popUntil((route) => route.isFirst);
       }
     } catch (e) {
-      if (context.mounted) {
-        showCupertinoDialog(
-          context: context,
-          builder: (context) => CupertinoAlertDialog(
-            title: const Text('Fout'),
-            content: const Text(
-              'Kon het medicijn niet opslaan. Probeer het later opnieuw.',
-            ),
-            actions: [
-              CupertinoDialogAction(
-                child: const Text('OK'),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-        );
+      // RESET de knop bij een fout!
+      setState(() => _buttonStatus = 'idle');
+      if (mounted) {
+        _showErrorAlert(context); // Toon de retry-melding die we eerder maakten
       }
     }
   }
@@ -91,13 +70,50 @@ class MedicineScreen extends StatelessWidget {
               await Navigator.of(context).push(
                 CupertinoPageRoute(builder: (context) => const LoginScreen()),
               );
-
-              final user = FirebaseAuth.instance.currentUser;
             },
           ),
         ],
       ),
     );
+  }
+
+  void _showErrorAlert(BuildContext context) {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Fout'),
+        content: const Text(
+          'Kon het medicijn niet opslaan. Controleer je verbinding of probeer het later opnieuw.',
+        ),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('OK'),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildButtonContent() {
+    if (_buttonStatus == 'idle') {
+      return const Text(
+        'Opslaan in schema',
+        style: TextStyle(
+          color: CupertinoColors.white,
+          fontSize: 17,
+          fontWeight: FontWeight.w600,
+        ),
+      );
+    } else if (_buttonStatus == 'loading') {
+      return const CupertinoActivityIndicator(color: CupertinoColors.white);
+    } else {
+      return const Icon(
+        CupertinoIcons.check_mark,
+        color: CupertinoColors.white,
+        size: 30,
+      );
+    }
   }
 
   @override
@@ -112,7 +128,7 @@ class MedicineScreen extends StatelessWidget {
             child: DefaultTextStyle(
               style: CupertinoTheme.of(context).textTheme.textStyle,
               child: FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-                future: firestoreService.getMedicineById(medicineName),
+                future: firestoreService.getMedicineById(widget.medicineName),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CupertinoActivityIndicator());
@@ -128,7 +144,7 @@ class MedicineScreen extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 200),
                     children: [
                       MedicineHeader(
-                        medicineName: medicineName,
+                        medicineName: widget.medicineName,
                         strength: data['strength'] ?? '',
                         category: data['category'] ?? '',
                       ),
@@ -144,20 +160,28 @@ class MedicineScreen extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          MedicineDosingScheduleCard(
-                            label: "Ochtend",
-                            amount: data['morning'] ?? 0,
-                            icon: CupertinoIcons.sun_max,
+                          Expanded(
+                            child: MedicineDosingScheduleCard(
+                              label: "Ochtend",
+                              amount: data['morning'] ?? 0,
+                              icon: CupertinoIcons.sun_max,
+                            ),
                           ),
-                          MedicineDosingScheduleCard(
-                            label: "Middag",
-                            amount: data['afternoon'] ?? 0,
-                            icon: CupertinoIcons.sun_haze,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: MedicineDosingScheduleCard(
+                              label: "Middag",
+                              amount: data['afternoon'] ?? 0,
+                              icon: CupertinoIcons.sun_haze,
+                            ),
                           ),
-                          MedicineDosingScheduleCard(
-                            label: "Avond",
-                            amount: data['evening'] ?? 0,
-                            icon: CupertinoIcons.moon,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: MedicineDosingScheduleCard(
+                              label: "Avond",
+                              amount: data['evening'] ?? 0,
+                              icon: CupertinoIcons.moon,
+                            ),
                           ),
                         ],
                       ),
@@ -193,22 +217,47 @@ class MedicineScreen extends StatelessWidget {
                       stream: FirebaseAuth.instance.authStateChanges(),
                       builder: (context, snapshot) {
                         final bool isLoggedIn = snapshot.hasData;
-                        return GenericButton(
-                          label: 'Opslaan in schema',
-                          onPressed: () async {
-                            if (!isLoggedIn) {
-                              _showLoginRequiredPopup(context);
-                            } else {
-                              final medicineDoc = await FirestoreService()
-                                  .getMedicineById(medicineName);
-                              if (medicineDoc.exists && context.mounted) {
-                                _handleSaveToSchedule(
-                                  context,
-                                  medicineDoc.data()!,
-                                );
-                              }
-                            }
-                          },
+                        return GestureDetector(
+                          onTap: _buttonStatus != 'idle'
+                              ? null
+                              : () async {
+                                  if (!isLoggedIn) {
+                                    _showLoginRequiredPopup(context);
+                                  } else {
+                                    final medicineDoc = await FirestoreService()
+                                        .getMedicineById(widget.medicineName);
+                                    if (medicineDoc.exists && context.mounted) {
+                                      _handleSaveToSchedule(
+                                        context,
+                                        medicineDoc.data()!,
+                                      );
+                                    }
+                                  }
+                                },
+                          child: Semantics(
+                            label: _buttonStatus == 'idle'
+                                ? 'Opslaan in schema'
+                                : 'Bezig met opslaan',
+                            button: true,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                              // Breedte past zich aan op basis van status
+                              width: _buttonStatus == 'idle'
+                                  ? MediaQuery.of(context).size.width - 32
+                                  : 60,
+                              height: 55,
+                              decoration: BoxDecoration(
+                                color: _buttonStatus == 'success'
+                                    ? CupertinoColors.activeGreen
+                                    : const Color(0xFF1B5AEE),
+                                borderRadius: BorderRadius.circular(
+                                  _buttonStatus == 'idle' ? 12 : 30,
+                                ),
+                              ),
+                              child: Center(child: _buildButtonContent()),
+                            ),
+                          ),
                         );
                       },
                     ),

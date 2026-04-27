@@ -1,5 +1,4 @@
 import 'package:camera/camera.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
@@ -35,21 +34,15 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
     _firestoreService.getMedicines().listen(
       (snapshot) {
-        print(
-          "Snapshot ontvangen! Aantal documenten: ${snapshot.docs.length}",
-        ); // Log 2
+        print("Snapshot ontvangen! Aantal documenten: ${snapshot.docs.length}");
 
         if (mounted) {
           setState(() {
             _medicineDataFromDB = snapshot.docs.map((doc) {
-              print("Medicijn in DB gevonden: ${doc.data()['name']}");
+              String dbName = doc.data()['name'].toString();
 
               return {
-                'searchName': doc
-                    .data()['name']
-                    .toString()
-                    .toLowerCase()
-                    .trim(),
+                'searchName': dbName.toLowerCase().trim(),
                 'realName': doc.id,
               };
             }).toList();
@@ -61,9 +54,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
         }
       },
       onError: (error) {
-        print(
-          "FIRESTORE FOUT: $error",
-        );
+        print("FIRESTORE FOUT: $error");
       },
     );
   }
@@ -183,7 +174,9 @@ class _ScannerScreenState extends State<ScannerScreen> {
       );
     }
 
-    final size = MediaQuery.of(context).size;
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double scannerWidth = screenWidth * 0.7;
+    final double scannerHeight = scannerWidth * 0.6;
 
     return CupertinoPageScaffold(
       backgroundColor: CupertinoColors.black,
@@ -207,7 +200,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
             ),
           ),
 
-
           ColorFiltered(
             colorFilter: ColorFilter.mode(
               CupertinoColors.black.withOpacity(0.5),
@@ -223,8 +215,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
                 ),
                 Center(
                   child: Container(
-                    width: 250,
-                    height: 150,
+                    width: scannerWidth,
+                    height: scannerHeight,
                     decoration: BoxDecoration(
                       color: CupertinoColors.white,
                       borderRadius: BorderRadius.circular(12),
@@ -238,10 +230,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 250, 
-                  height: 170,
-                ),
+                Container(width: scannerWidth, height: scannerHeight),
+
                 const SizedBox(height: 24),
                 Container(
                   padding: const EdgeInsets.symmetric(
